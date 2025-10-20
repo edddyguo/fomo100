@@ -1,0 +1,23 @@
+[package]
+description = "Created with Anchor"
+edition = "2018"
+name = "fomo100"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "fomo100"
+
+[features]
+cpi = ["no-entrypoint"]
+default = []
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+anchor-spl = { version = "0.31.1", features = ["associated_token", "metadata"] }
+spl-token = { version = "7.0.0", features = ["no-entrypoint"] }
+mpl-token-metadata = "5.1.0"

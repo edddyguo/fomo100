@@ -1,0 +1,12 @@
+.idea
+target
+node_modules
+package-lock.json
+*nohup*
+**out
+*.txt
+*DS_Store
+*.swp
+*env
+*_bak
+*.vscode

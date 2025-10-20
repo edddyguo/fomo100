@@ -1,0 +1,5 @@
+[toolchain]
+channel = "nightly-2025-01-31"
+# channel = "1.71.0"
+components = ["clippy", "rustfmt"]  # 额外安装 clippy 和 rustfmt
+targets = ["x86_64-unknown-linux-gnu"]
