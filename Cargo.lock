@@ -1597,6 +1597,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "borsh 0.10.4",
  "mpl-token-metadata",
  "spl-token 7.0.0",
 ]

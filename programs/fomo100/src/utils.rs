@@ -1,74 +1,116 @@
-use crate::errors::MinterError;
+use crate::errors::StakeError;
 use anchor_lang::prelude::*;
 use spl_token::solana_program::ed25519_program::ID as ED25519_ID;
 use spl_token::solana_program::instruction::Instruction;
 
+use crate::state::{Round, UserStake};
 use std::convert::TryInto;
+use std::ops::RangeBounds;
 
-/// Verify Ed25519Program instruction fields
-pub fn verify_ed25519_ix(ix: &Instruction, pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<()> {
-    if ix.program_id       != ED25519_ID                   ||  // The program id we expect
-        ix.accounts.len()   != 0                            ||  // With no context accounts
-        ix.data.len()       != (16 + 64 + 32 + msg.len())
-    // And data of this size
-    {
-        return Err(MinterError::SigVerificationFailed.into()); // Otherwise, we can already throw err
-    }
+pub const DAY1: i64 = 60 * 60 * 24;
 
-    check_ed25519_data(&ix.data, pubkey, msg, sig)?; // If that's not the case, check data
-
-    Ok(())
+//获取当前轮次,
+pub fn current_round_index(pool_init: i64) -> Result<i64> {
+    let clock = Clock::get()?;
+    let index = (clock.unix_timestamp - pool_init) / DAY1;
+    Ok(index)
 }
 
-/// Verify serialized Ed25519Program instruction data
-pub fn check_ed25519_data(data: &[u8], pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<()> {
-    // According to this layout used by the Ed25519Program
-    // https://github.com/solana-labs/solana-web3.js/blob/master/src/ed25519-program.ts#L33
+//将质押的记录，展开为对应轮次的记录,
+//展开后用户轮次和pool轮次保持一致，
+//hack: to optimize, 没必要全部展开，可以在使用的时候加上，对应index没有的话，就使用上一个轮次的值，这个逻辑
+pub fn flatten_user_stake_snap(current_round_index: u32, user_stakes: &Vec<UserStake>) -> Vec<u64> {
+    let mut stake_snaps = vec![];
+    //如果用户没有质押，则历史值全为零
+    let mut last_stake_amount = user_stakes.last().map(|x| x.stake_amount).unwrap_or(0);
 
-    // "Deserializing" byte slices
-
-    let num_signatures = &[data[0]]; // Byte  0
-    let padding = &[data[1]]; // Byte  1
-    let signature_offset = &data[2..=3]; // Bytes 2,3
-    let signature_instruction_index = &data[4..=5]; // Bytes 4,5
-    let public_key_offset = &data[6..=7]; // Bytes 6,7
-    let public_key_instruction_index = &data[8..=9]; // Bytes 8,9
-    let message_data_offset = &data[10..=11]; // Bytes 10,11
-    let message_data_size = &data[12..=13]; // Bytes 12,13
-    let message_instruction_index = &data[14..=15]; // Bytes 14,15
-
-    let data_pubkey = &data[16..16 + 32]; // Bytes 16..16+32
-    let data_sig = &data[48..48 + 64]; // Bytes 48..48+64
-    let data_msg = &data[112..]; // Bytes 112..end
-
-    // Expected values
-
-    let exp_public_key_offset: u16 = 16; // 2*u8 + 7*u16
-    let exp_signature_offset: u16 = exp_public_key_offset + pubkey.len() as u16;
-    let exp_message_data_offset: u16 = exp_signature_offset + sig.len() as u16;
-    let exp_num_signatures: u8 = 1;
-    let exp_message_data_size: u16 = msg.len().try_into().unwrap();
-
-    // Header and Arg Checks
-
-    // Header
-    if num_signatures != &exp_num_signatures.to_le_bytes()
-        || padding != &[0]
-        || signature_offset != &exp_signature_offset.to_le_bytes()
-        || signature_instruction_index != &u16::MAX.to_le_bytes()
-        || public_key_offset != &exp_public_key_offset.to_le_bytes()
-        || public_key_instruction_index != &u16::MAX.to_le_bytes()
-        || message_data_offset != &exp_message_data_offset.to_le_bytes()
-        || message_data_size != &exp_message_data_size.to_le_bytes()
-        || message_instruction_index != &u16::MAX.to_le_bytes()
+    if user_stakes
+        .iter()
+        .any(|x| x.round_index > current_round_index)
     {
-        return Err(MinterError::SigVerificationFailed.into());
+        //Err(StakeError::Unknown)?;
+        panic!("it is unreachable,user's round index must less than pool");
     }
 
-    // Arguments
-    if data_pubkey != pubkey || data_msg != msg || data_sig != sig {
-        return Err(MinterError::SigVerificationFailed.into());
+    for index in 0..current_round_index {
+        let x: Vec<&UserStake> = user_stakes
+            .iter()
+            .filter(|x| x.round_index == index)
+            .collect();
+
+        match x.as_slice() {
+            [stake] => {
+                stake_snaps.push(stake.stake_amount);
+                last_stake_amount = stake.stake_amount;
+            }
+            [] => stake_snaps.push(last_stake_amount),
+            _ => {
+                panic!("user have multi stake record in a round");
+            }
+        }
+    }
+    stake_snaps
+}
+
+//hack: to optimize, 没必要全部展开，可以在使用的时候加上，对应index没有的话，就使用上一个轮次的值，这个逻辑
+//返回全历史记录的（奖励和总质押）
+pub fn flatten_pool_stake_snap(
+    current_round_index: u32,
+    pool_stakes: &Vec<Round>,
+) -> Vec<(u64, u64)> {
+    let mut stake_snaps = vec![];
+    //如果用户没有质押，则历史值全为零
+    let (mut last_stake_amount, mut last_reward) = pool_stakes
+        .last()
+        .map(|x| (x.stake_amount, x.reward))
+        .unwrap_or((0, 0));
+
+    if pool_stakes.iter().any(|x| x.index > current_round_index) {
+        //Err(StakeError::Unknown)?;
+        panic!("it is unreachable,user's round index must less than pool");
     }
 
-    Ok(())
+    for index in 0..current_round_index {
+        let x: Vec<&Round> = pool_stakes.iter().filter(|x| x.index == index).collect();
+
+        match x.as_slice() {
+            [stake] => {
+                stake_snaps.push((stake.stake_amount, stake.reward));
+                last_stake_amount = stake.stake_amount;
+                last_reward = stake.reward;
+            }
+            [] => stake_snaps.push((last_stake_amount, last_reward)),
+            _ => {
+                panic!("user have multi stake record in a round");
+            }
+        }
+    }
+    stake_snaps
+}
+
+//根据轮次历史快照和用户stake的历史记录，计算总的奖励金额
+pub fn calculate_total_reward(
+    current_round_index: u32,
+    pool_rounds: &Vec<Round>,
+    user_stakes: &Vec<UserStake>,
+) -> Result<u64> {
+    let mut pool_stake_snip = flatten_pool_stake_snap(current_round_index, pool_rounds);
+    let mut user_stake_snip = flatten_user_stake_snap(current_round_index, &user_stakes);
+    assert_eq!(pool_rounds.len(), user_stake_snip.len());
+    //当前轮次不产生奖励，剔除
+    pool_stake_snip.pop();
+    user_stake_snip.pop();
+    let mut total_reward = 0;
+    for (round, user_stake_amount) in pool_rounds.into_iter().zip(user_stake_snip.into_iter()) {
+        //中间值也许会超过u64，但最终结果肯定在u64范围内
+        let round_reward =
+            user_stake_amount as u128 * round.reward as u128 / round.stake_amount as u128;
+        total_reward += round_reward as u64;
+    }
+    Ok(total_reward)
+}
+
+//向下取整
+pub fn get_current_round_index(init_at: i64, now: i64, period: u32) -> u32 {
+    ((now - init_at) / (period as i64)) as u32
 }
