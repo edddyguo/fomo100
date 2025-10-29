@@ -9,7 +9,7 @@ use instructions::*;
 use mpl_token_metadata::types::Collection;
 use std::str::FromStr;
 
-declare_id!("4Th4Zf653GLACZ6yEEeharhv9JytsUYtPyXYAcA9freJ");
+declare_id!("33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ");
 
 #[program]
 pub mod fomo100 {
@@ -21,6 +21,10 @@ pub mod fomo100 {
 
     pub fn create_pool(ctx: Context<CreatePool>, round_period_secs: u32) -> Result<()> {
         instructions::create_pool::handler(ctx, round_period_secs)
+    }
+
+    pub fn expand_pool_state(ctx: Context<ExpandPoolState>) -> Result<()> {
+        instructions::expand_pool_state::handler(ctx)
     }
 
     pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {

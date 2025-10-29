@@ -1,10 +1,11 @@
 pub mod general;
+pub mod instructions;
 pub mod math;
-pub mod nft;
+pub mod service;
 pub mod state;
 pub mod utils;
-pub mod service;
 
+use crate::state::State;
 use crate::utils::*;
 use anchor_client::anchor_lang::prelude::Pubkey;
 use anchor_client::solana_sdk::commitment_config::CommitmentConfig;
@@ -12,21 +13,18 @@ use anchor_client::{Client, Cluster};
 use anyhow::Result;
 use clap::Parser;
 use clap::Subcommand;
+use fomo100::constants::INIT_AIRDROP_SIGN_PREFIX;
 use math::coin_amount::display2raw;
 use service::SetNftClaimSigRequest;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signer::Signer;
-use state::TotalNft;
-use fomo100::state::COLLECTION_MINT_SEED;
-use tokio::runtime::Runtime;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::thread;
+use std::thread::{self, sleep};
 use std::time::Duration;
-use fomo100::constants::INIT_AIRDROP_SIGN_PREFIX;
+use tokio::runtime::Runtime;
 use utils::{current_date, get_lamport_balance};
-use crate::state::State;
 
 #[cfg(feature = "serde-feature")]
 use {
@@ -34,50 +32,37 @@ use {
     serde_with::{As, DisplayFromStr},
 };
 #[derive(Parser, Debug)]
-pub struct TransferArgs {
-    /// 待处理的账户列表
+pub struct ExpandPoolState {
     #[clap(long)]
-    pub account_list: String,
-    /// 经验值为5
+    pub program_id: String,
+    /// 待扩展的账号，pool_state_pda
     #[clap(long)]
-    pub batch_size: u32,
-    /// 处理结果文件
+    pub account: String,
+    /// 扩展的次数，每次10k
     #[clap(long)]
-    pub account_result: String,
+    pub times: u32,
 }
 
 #[derive(Parser, Debug)]
-pub struct MintArgs {
+pub struct CreatePoolArgs {
     #[clap(long)]
-    pub minter_program_id: String,
+    pub program_id: String,
     #[clap(long)]
-    pub collection_name: String,
+    pub token_mint: String,
     #[clap(long)]
-    pub pay_sol: bool,
-    #[clap(long)]
-    pub init_amount: u32,
-    #[clap(long)]
-    pub init_sig: String,
-    #[clap(long)]
-    pub init_instruction_data: String,
+    pub round_period_secs: u32,
 }
 
 #[derive(Parser, Debug)]
-pub struct CreateCollectionArgs {
+pub struct StakeArgs {
     #[clap(long)]
-    pub minter_program_id: String,
+    pub program_id: String,
     #[clap(long)]
-    pub name: String,
+    pub token_mint: String,
     #[clap(long)]
-    pub symbol: String,
+    pub round_period_secs: u32,
     #[clap(long)]
-    pub uri: String,
-    #[clap(long)]
-    pub sol_price: Option<u64>,
-    #[clap(long)]
-    pub settle_token_price: Option<u64>,
-    #[clap(long)]
-    pub settle_token: String,
+    pub stake_amount: u64,
 }
 
 #[derive(Parser, Debug)]
@@ -93,13 +78,13 @@ pub struct SetAdminArgs {
 }
 
 #[derive(Parser, Debug)]
-pub struct GetAdminArgs {
+pub struct PoolStateArgs {
     #[clap(long)]
-    pub minter_program_id: String,
+    pub program_id: String,
     #[clap(long)]
-    pub elite_collection_name: String,
+    pub token_mint: String,
     #[clap(long)]
-    pub core_collection_name: String,
+    pub round_period_secs: u32,
 }
 
 #[derive(Parser, Debug)]
@@ -152,7 +137,6 @@ pub struct UpdateNftSigListArgs {
     pub elite_collection_name: String,
 }
 
-
 #[derive(Parser, Debug)]
 pub struct CheckAndUpdateNftSigListArgs {
     #[clap(long)]
@@ -165,11 +149,11 @@ pub struct CheckAndUpdateNftSigListArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    Transfer(TransferArgs),
-    Mint(MintArgs),
-    CreateCollection(CreateCollectionArgs),
+    ExpandPoolState(ExpandPoolState),
+    CreatePool(CreatePoolArgs),
+    Stake(StakeArgs),
     SetAdmin(SetAdminArgs),
-    GetAdmin(GetAdminArgs),
+    PoolState(PoolStateArgs),
     SetPrice(SetPriceArgs),
     InitAirdrop(InitAirdropArgs),
     SignAirdrop(SignAirdropArgs),
@@ -250,6 +234,9 @@ fn main() -> Result<()> {
 
     let payer = Keypair::from_base58_string(&prikey);
     let cluster = Cluster::Custom(rpc_url.clone(), "".to_string());
+    unsafe {
+        RPC = Some(rpc_url);
+    }
     let client = Client::new_with_options(cluster, Rc::new(payer), CommitmentConfig::confirmed());
 
     // unsafe {
@@ -258,102 +245,49 @@ fn main() -> Result<()> {
     // }
 
     match subcommand {
-        Commands::Mint(args) => {
-            let program = client.program(Pubkey::from_str(&args.minter_program_id)?)?;
-            nft::init_airdrop_and_mint(&program, args.collection_name, args.pay_sol, args.init_amount, args.init_sig, args.init_instruction_data)?;
+        Commands::CreatePool(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            instructions::create_pool(&program, args.token_mint.as_str(), args.round_period_secs)?;
         }
-        Commands::Transfer(args) => {
-            todo!()
+        Commands::ExpandPoolState(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            for _ in 0..args.times {
+                instructions::expand_pool_state(&program, args.account.as_str())?;
+                sleep(Duration::from_secs(5));
+            }
         }
-        Commands::CreateCollection(args) => {
-            let program = client.program(Pubkey::from_str(&args.minter_program_id)?)?;
-            nft::mint_collection(
+        Commands::Stake(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            instructions::stake(
                 &program,
-                args.name,
-                args.symbol,
-                args.uri,
-                args.sol_price,
-                args.settle_token_price,
-                args.settle_token,
+                args.token_mint.as_str(),
+                args.round_period_secs,
+                args.stake_amount,
             )?;
         }
         Commands::SetAdmin(args) => {
-            let program = client.program(Pubkey::from_str(&args.minter_program_id)?)?;
-            nft::set_admin(
-                &program,
-                args.new_admin,
-                args.new_validator,
-                args.new_treasurer,
-            )?;
+            todo!()
         }
-        Commands::GetAdmin(args) => {
-            let program = client.program(Pubkey::from_str(&args.minter_program_id)?)?;
-            let admin_info = nft::get_admin(&program, args.elite_collection_name, args.core_collection_name)?;
-            println!("admin_info: {:?}", admin_info);
+        Commands::PoolState(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            let token_mint: Pubkey = args.token_mint.as_str().try_into().ok().unwrap();
+            program.pool_state(&token_mint, args.round_period_secs)?;
         }
         Commands::SetPrice(args) => {
-            let program = client.program(Pubkey::from_str(&args.minter_program_id)?)?;
-            nft::set_price(
-                &program,
-                args.collection_name,
-                args.sol_price,
-                args.settle_token_price,
-                args.settle_token,
-            )?;
+            todo!()
         }
         Commands::InitAirdrop(args) => {
-            let program = client.program(Pubkey::from_str(&args.minter_program_id)?)?;
-            nft::init_airdrop(&program, args.collection_name, args.init_amount, args.init_sig, args.init_instruction_data)?;
+            todo!()
         }
         Commands::SignAirdrop(args) => {
-            let program = client.program(Pubkey::from_str(&args.minter_program_id)?)?;
-            nft::sign_airdrop(&program, &prikey, args.collection_name, args.pubkey, args.amount)?;
+            todo!()
         }
 
         Commands::UpdateNftSigList(args) => {
-            let program = client.program(Pubkey::from_str(&args.minter_program_id)?)?;
-            let pending_sig_list = service::get_claimed_list();
-            let set_data: Vec<SetNftClaimSigRequest> = pending_sig_list.into_iter().map(|x| {
-                let nft_sig = nft::sign_airdrop(&program, &prikey, args.core_collection_name.clone(),x.address.clone(), x.nft_amount).unwrap();
-                let nft_elite_sig = nft::sign_airdrop(&program, &prikey, args.elite_collection_name.clone(),x.address.clone(), x.nft_premium_amount).unwrap();
-                SetNftClaimSigRequest{
-                    address: x.address,
-                    nft_sig: nft_sig,
-                    nft_premium_sig: nft_elite_sig,
-                }
-            }).collect();
-            service::set_claimed_sig(set_data);
-            let res =  service::get_claimed_list();
-            println!("get_claimed_list_res: {:?}", res); 
+            todo!()
         }
         Commands::CheckAndUpdateNftSigList(args) => {
-           //心跳进程发飞书
-           //检查上次nft的更新时间，是否等于当前的nft的更新时间，如果等于，则不更新，否则更新
-            let program = client.program(Pubkey::from_str(&args.minter_program_id)?)?;
-            loop {
-                let claim_states_off_chain = service::get_claimed_list();
-                let mut need_update_sig_list = Vec::new();
-                for state_off_chain in claim_states_off_chain.iter() {
-                    let current_nft_core_sig = nft::sign_airdrop(&program, &prikey, args.core_collection_name.clone(), state_off_chain.address.clone(), state_off_chain.nft_amount).unwrap();
-                    let current_nft_elite_sig = nft::sign_airdrop(&program, &prikey, args.elite_collection_name.clone(), state_off_chain.address.clone(), state_off_chain.nft_premium_amount).unwrap();
-                    //如果签名不一致，则说明首次注入签名，或者有新的空投，需要更新签名
-                    if state_off_chain.nft_sig != current_nft_core_sig || state_off_chain.nft_premium_sig != current_nft_elite_sig {
-                        need_update_sig_list.push(SetNftClaimSigRequest {
-                            address: state_off_chain.address.clone(),
-                            nft_sig: current_nft_core_sig,
-                            nft_premium_sig: current_nft_elite_sig,
-                        });
-                    }
-                }
-             
-                let msg: String = format!("{},find new nft id need sign: {:#?}",current_date(), need_update_sig_list);
-                if !need_update_sig_list.is_empty() {
-                    service::set_claimed_sig(need_update_sig_list);
-                }
-                println!("{:?}",msg);
-                notify_lark(&msg)?;
-                thread::sleep(Duration::from_secs(60));
-            }
+            todo!()
         }
     }
     Ok(())

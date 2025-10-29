@@ -36,20 +36,20 @@ pub fn handler(ctx: Context<CreatePool>, round_period_secs: u32) -> Result<()> {
 #[instruction(round_period_secs: u32)]
 pub struct CreatePool<'info> {
     #[account(mut)]
-    admin: Signer<'info>,
+    pub admin: Signer<'info>,
     //init pool state by ended_at
     #[account(init, payer=admin, seeds=[token_mint.key().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], bump, space=8 + PoolState::LEN)]
-    pool_state: Account<'info, PoolState>,
+    pub pool_state: Account<'info, PoolState>,
     #[account(
         init,
         associated_token::mint = token_mint,
         associated_token::authority = pool_state,
         payer = admin,
     )]
-    pool_vault: InterfaceAccount<'info, TokenAccount>,
+    pub pool_vault: InterfaceAccount<'info, TokenAccount>,
     #[account(mut)]
-    token_mint: InterfaceAccount<'info, Mint>,
-    associated_token_program: Program<'info, AssociatedToken>,
-    token_program: Interface<'info, TokenInterface>,
-    system_program: Program<'info, System>,
+    pub token_mint: InterfaceAccount<'info, Mint>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Interface<'info, TokenInterface>,
+    pub system_program: Program<'info, System>,
 }

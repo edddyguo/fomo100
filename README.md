@@ -108,6 +108,15 @@ solana address -k 1.json
 
 ../target/debug/anchor_cli --prikey xxx --rpc-url https://stylish-flashy-scion.solana-devnet.quiknode.pro/440b45854c57eb8ec133590d26123a835cc5a69f mint --minter-program-id 79iwpmjk5mh2acXp2SQxh2JpmNqji76FQQAH4erCCuhu --collection-name "solpen_test_nft_collection_01" --pay-sol
 
+
+../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://stylish-flashy-scion.solana-devnet.quiknode.pro/440b45854c57eb8ec133590d26123a835cc5a69f create-pool --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --round-period-secs 10
+
+//扩展池子空间
+//10年的量需要73000(3600*20)的byte，每次10k的申请消耗0.07个sol，这里time给个8次就行了
+../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://stylish-flashy-scion.solana-devnet.quiknode.pro/440b45854c57eb8ec133590d26123a835cc5a69f expand-pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --account 7wa1dvVMaPeSFhukRyDoyYLj42kDh461PQkTYhv6NRkx --times 1
+
+//stake
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://stylish-flashy-scion.solana-devnet.quiknode.pro/440b45854c57eb8ec133590d26123a835cc5a69f stake --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --round-period-secs 10 --stake-amount 100
 ```
 
 ## 流程 交互

@@ -6,14 +6,13 @@ use anchor_client::solana_sdk::signature::Signer;
 use anchor_client::Client;
 
 use anyhow::Result;
+use fomo100::state::PoolState;
+use fomo100::state::UserState;
+use fomo100::state::USER_STATE_SEED;
+use fomo100::state::*;
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::signature::Keypair;
 use spl_associated_token_account::get_associated_token_address;
-use fomo100::state::CollectionState;
-use fomo100::state::UserState;
-use fomo100::state::COLLECTION_STATE_SEED;
-use fomo100::state::USER_STATE_SEED;
-use fomo100::state::*;
 
 use std::rc::Rc;
 use std::str::FromStr;
@@ -32,7 +31,6 @@ use {
 };
 
 pub trait State {
-    fn admin_state(&self) -> Result<AdminState>;
     fn user_state<T: Into<Pubkey> + Clone>(
         &self,
         collection_mint: &T,
@@ -43,74 +41,67 @@ pub trait State {
         collection_mints: &[T],
         user_pubkeys: &[T],
     ) -> Result<Vec<UserState>>;
-    fn collection_state<T: Into<Pubkey> + Clone>(
+    fn pool_state<T: Into<Pubkey> + Clone>(
         &self,
-        collection_mint: &T,
-    ) -> Result<CollectionState>;
-}
-
-pub trait TotalNft {
-    fn total_nft(&self) -> u32;
-}
-
-impl TotalNft for UserState {
-    fn total_nft(&self) -> u32 {
-        self.pending_airdrop_count + self.claimed_airdrop_count
-    }
+        token_mint: &T,
+        round_period_secs: u32,
+    ) -> Result<PoolState>;
 }
 
 impl State for Program<Rc<Keypair>> {
-    fn admin_state(&self) -> Result<AdminState> {
-        let (pda, _bump) = Pubkey::find_program_address(&[ADMIN_STATE_SEED.as_bytes()], &self.id());
-        let admin_state = self.account::<AdminState>(pda)?;
-        Ok(admin_state)
-    }
-
     fn user_state<T: Into<Pubkey> + Clone>(
         &self,
         collection_mint: &T,
         user_pubkey: &T,
     ) -> Result<UserState> {
-        let user_pubkey: Pubkey = user_pubkey.clone().into();
-        let collection_mint_pubkey: Pubkey = collection_mint.clone().into();
-        let (pda, _bump) = Pubkey::find_program_address(
-            &[
-                USER_STATE_SEED.as_bytes(),
-                collection_mint_pubkey.as_ref(),
-                user_pubkey.as_ref(),
-            ],
-            &self.id(),
-        );
-        let user_state = self.account::<UserState>(pda)?;
-        Ok(user_state)
+        // let user_pubkey: Pubkey = user_pubkey.clone().into();
+        // let collection_mint_pubkey: Pubkey = collection_mint.clone().into();
+        // let (pda, _bump) = Pubkey::find_program_address(
+        //     &[
+        //         USER_STATE_SEED.as_bytes(),
+        //         collection_mint_pubkey.as_ref(),
+        //         user_pubkey.as_ref(),
+        //     ],
+        //     &self.id(),
+        // );
+        // let user_state = self.account::<UserState>(pda)?;
+        // Ok(user_state)
+        todo!()
     }
     //todo: 一次性拿全部,通过get_program_accounts_with_config
-    fn user_states<T: Into<Pubkey> + Clone>(&self, collection_mints: &[T],user_pubkeys: &[T]) -> Result<Vec<UserState>> {
-       let mut user_states = Vec::new();
-       for collection_mint in collection_mints {
-        for user_pubkey in user_pubkeys {
-            let user_state = self.user_state(collection_mint, user_pubkey)?;
-            user_states.push(user_state);
-        }
-       }
-       Ok(user_states)
-    }
-    
-
-    fn collection_state<T: Into<Pubkey> + Clone>(
+    fn user_states<T: Into<Pubkey> + Clone>(
         &self,
-        collection_mint: &T,
-    ) -> Result<CollectionState> {
-        let collection_mint_pubkey: Pubkey = collection_mint.clone().into();
+        collection_mints: &[T],
+        user_pubkeys: &[T],
+    ) -> Result<Vec<UserState>> {
+        // let mut user_states = Vec::new();
+        // for collection_mint in collection_mints {
+        //     for user_pubkey in user_pubkeys {
+        //         let user_state = self.user_state(collection_mint, user_pubkey)?;
+        //         user_states.push(user_state);
+        //     }
+        // }
+        // Ok(user_states)
+        todo!()
+    }
+
+    //#[account(init, payer=admin, seeds=[token_mint.key().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], bump, space=8 + PoolState::LEN)]
+    fn pool_state<T: Into<Pubkey> + Clone>(
+        &self,
+        token_mint: &T,
+        round_period_secs: u32,
+    ) -> Result<PoolState> {
+        let token_mint_pubkey: Pubkey = token_mint.clone().into();
         let (pda, _bump) = Pubkey::find_program_address(
             &[
-                COLLECTION_STATE_SEED.as_bytes(),
-                collection_mint_pubkey.as_ref(),
+                token_mint_pubkey.key().as_ref(),
+                round_period_secs.to_be_bytes().as_ref(),
+                POOL_STATE_SEED.as_bytes(),
             ],
             &self.id(),
         );
-        let collection_state = self.account::<CollectionState>(pda)?;
-        println!("collection_state {:?}", collection_state);
+        let collection_state = self.account::<PoolState>(pda)?;
+        println!("pool_state {:?}", collection_state);
         Ok(collection_state)
     }
 }

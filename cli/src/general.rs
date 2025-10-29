@@ -1,9 +1,13 @@
 //todo: some solana api
 use anchor_client::anchor_lang::prelude::Pubkey;
+use anchor_client::anchor_lang::Key;
 use anchor_client::solana_sdk::commitment_config::CommitmentConfig;
 use anchor_client::ClientError;
+use anyhow::anyhow;
 use anyhow::Result;
 use chrono::prelude::*;
+use fomo100::state::PoolState;
+use fomo100::state::POOL_STATE_SEED;
 use serde::Deserialize;
 use serde::Serialize;
 use solana_account_decoder::UiAccountEncoding;
@@ -16,6 +20,8 @@ use solana_client::{
 use solana_sdk::program_pack::Pack;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signature::Signature;
+use solana_sdk::signer::Signer;
+use solana_sdk::system_instruction;
 use solana_sdk::transaction::Transaction;
 use spl_associated_token_account::create_associated_token_account;
 use spl_associated_token_account::get_associated_token_address;
@@ -26,7 +32,73 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::Write;
+use std::rc::Rc;
 use std::str::FromStr;
+//for fomo100
+pub fn create_pda_account(
+    program: &anchor_client::Program<Rc<Keypair>>,
+    token_mint: &str,
+    round_period_secs: u32,
+    prikey: &str,
+) -> Result<()> {
+    let dojo_mint_pubkey: Pubkey = token_mint
+        .try_into()
+        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    // 连接到本地或 devnet
+    let rpc = program.rpc();
+    // 加载你的管理员密钥
+    let program_id = program.id();
+    let admin_pubkey = program.payer();
+    let admin_key_pair = Keypair::from_base58_string(prikey);
+
+    // 创建新的账户（未来将作为 pool_state）
+    // let (pool_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         dojo_mint_pubkey.key().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    let temp_account = Keypair::new();
+
+    // 计算所需空间
+    let space = PoolState::LEN + 8;
+
+    let space = 1728000;
+    let lamports = program
+        .rpc()
+        .get_minimum_balance_for_rent_exemption(space)?;
+
+    println!(
+        "Creating pool_state account with {} bytes, rent {} lamports",
+        space, lamports
+    );
+
+    // // 构造 system_program::create_account 指令
+    // let create_ix = system_instruction::create_account(
+    //     &admin_pubkey,
+    //     &temp_account.pubkey(),
+    //     lamports,
+    //     space as u64,
+    //     &program_id, // 将账户所有权交给你的合约
+    // );
+
+    // // 构造事务
+    // let tx = Transaction::new_signed_with_payer(
+    //     &[create_ix],
+    //     Some(&admin_pubkey),
+    //     &[&admin_key_pair, &temp_account],
+    //     rpc.get_latest_blockhash()?,
+    // );
+
+    // // 发送事务
+    // let sig = rpc.send_and_confirm_transaction(&tx)?;
+    // println!("✅ PoolState account created: {}", temp_account.pubkey());
+    // println!("Tx: https://explorer.solana.com/tx/{}?cluster=devnet", sig);
+
+    Ok(())
+}
 
 pub fn spl_transfer(from_pubkey: &Pubkey, to_pubkey: &Pubkey, amount: u64) -> Result<String> {
     let mint_pubkey = unsafe { crate::TOKEN_MINT.unwrap() };

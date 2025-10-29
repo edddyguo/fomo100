@@ -1,4 +1,4 @@
-use anchor_lang::error_code;
+use anchor_lang::{error_code, prelude::msg};
 
 #[error_code]
 pub enum StakeError {
@@ -16,4 +16,9 @@ pub enum StakeError {
     HaveAlreadyUnstaked,
     #[msg("Unknown")]
     Unknown,
+}
+
+pub fn unknown_error(e: &str) -> StakeError {
+    msg!("unknown_error {}", e);
+    StakeError::Unknown
 }

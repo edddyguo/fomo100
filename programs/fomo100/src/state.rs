@@ -1,7 +1,10 @@
 use anchor_lang::prelude::*;
 
-pub const MINIMAL_STAKE_AMOUNT: u64 = 1_000_000_000;
+//pub const MINIMAL_STAKE_AMOUNT: u64 = 1_000_000_000;
+pub const MINIMAL_STAKE_AMOUNT: u64 = 1;
 pub const ROUND_MAX: u32 = 2000;
+//折衷的选择，允许用户累积100次天的快照，这是够用的，
+//且当用户万一不够了，进行一次claim就行，这会删除之前的快照数据
 pub const MAX_USER_STAKE_TIMES: u32 = 100;
 pub const UNLOCK_DAYS: i64 = 30;
 
@@ -32,7 +35,7 @@ pub struct UserState {
 }
 
 impl UserState {
-    pub const LEN: usize = 32 + (4 + MAX_USER_STAKE_TIMES as usize * (8 + 8)) + (1 + 8) + 8;
+    pub const LEN: usize = 32 + (4 + MAX_USER_STAKE_TIMES as usize * (4 + 8)) + (1 + 8) + 8 + 1;
 }
 
 #[derive(Debug, Default, Clone, AnchorSerialize, AnchorDeserialize)]
@@ -58,5 +61,7 @@ pub struct PoolState {
 }
 
 impl PoolState {
-    pub const LEN: usize = 32 + 4 + 8 + 8 + (4 + ROUND_MAX as usize * (8 + 8)) + 4 + 8 + 8;
+    //初始化仅申请20个轮次的空间
+    pub const LEN: usize =
+        32 + 4 + 8 + 8 + (4 + (ROUND_MAX / 100) as usize * (4 + 8 + 8)) + 4 + 8 + 8;
 }
