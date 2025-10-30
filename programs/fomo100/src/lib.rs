@@ -19,8 +19,12 @@ pub mod fomo100 {
         instructions::claim::handler(ctx)
     }
 
-    pub fn create_pool(ctx: Context<CreatePool>, round_period_secs: u32) -> Result<()> {
-        instructions::create_pool::handler(ctx, round_period_secs)
+    pub fn create_pool(
+        ctx: Context<CreatePool>,
+        created_at: i64,
+        round_period_secs: u32,
+    ) -> Result<()> {
+        instructions::create_pool::handler(ctx, created_at, round_period_secs)
     }
 
     pub fn expand_pool_state(ctx: Context<ExpandPoolState>) -> Result<()> {
@@ -31,12 +35,12 @@ pub mod fomo100 {
         instructions::stake::handler(ctx, amount)
     }
 
-    pub fn unlock(ctx: Context<Unlock>, round_period_secs: i64) -> Result<()> {
-        instructions::unlock::handler(ctx, round_period_secs)
+    pub fn unlock(ctx: Context<Unlock>, created_at: i64, round_period_secs: u32) -> Result<()> {
+        instructions::unlock::handler(ctx, created_at, round_period_secs)
     }
 
-    pub fn unstake(ctx: Context<Unstake>, round_period_secs: i64) -> Result<()> {
-        instructions::unstake::handler(ctx, round_period_secs)
+    pub fn unstake(ctx: Context<Unstake>, created_at: i64, round_period_secs: u32) -> Result<()> {
+        instructions::unstake::handler(ctx, created_at, round_period_secs)
     }
 
     pub fn update_pool(ctx: Context<Unstake>, reward: i64, owner: Vec<Pubkey>) -> Result<()> {

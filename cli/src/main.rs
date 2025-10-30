@@ -50,6 +50,8 @@ pub struct CreatePoolArgs {
     #[clap(long)]
     pub token_mint: String,
     #[clap(long)]
+    pub created_at: i64,
+    #[clap(long)]
     pub round_period_secs: u32,
 }
 
@@ -59,6 +61,8 @@ pub struct StakeArgs {
     pub program_id: String,
     #[clap(long)]
     pub token_mint: String,
+    #[clap(long)]
+    pub created_at: i64,
     #[clap(long)]
     pub round_period_secs: u32,
     #[clap(long)]
@@ -83,6 +87,8 @@ pub struct PoolStateArgs {
     pub program_id: String,
     #[clap(long)]
     pub token_mint: String,
+    #[clap(long)]
+    pub created_at: i64,
     #[clap(long)]
     pub round_period_secs: u32,
 }
@@ -238,16 +244,15 @@ fn main() -> Result<()> {
         RPC = Some(rpc_url);
     }
     let client = Client::new_with_options(cluster, Rc::new(payer), CommitmentConfig::confirmed());
-
-    // unsafe {
-    //     DOJO_COIN = Some(token_mint_address);
-    //     DOJO_STAKING_CONTRACT_ID = Some(program_id);
-    // }
-
     match subcommand {
         Commands::CreatePool(args) => {
             let program = client.program(Pubkey::from_str(&args.program_id)?)?;
-            instructions::create_pool(&program, args.token_mint.as_str(), args.round_period_secs)?;
+            instructions::create_pool(
+                &program,
+                args.token_mint.as_str(),
+                args.created_at,
+                args.round_period_secs,
+            )?;
         }
         Commands::ExpandPoolState(args) => {
             let program = client.program(Pubkey::from_str(&args.program_id)?)?;
@@ -261,6 +266,7 @@ fn main() -> Result<()> {
             instructions::stake(
                 &program,
                 args.token_mint.as_str(),
+                args.created_at,
                 args.round_period_secs,
                 args.stake_amount,
             )?;
@@ -271,7 +277,7 @@ fn main() -> Result<()> {
         Commands::PoolState(args) => {
             let program = client.program(Pubkey::from_str(&args.program_id)?)?;
             let token_mint: Pubkey = args.token_mint.as_str().try_into().ok().unwrap();
-            program.pool_state(&token_mint, args.round_period_secs)?;
+            program.pool_state(&token_mint, args.created_at, args.round_period_secs)?;
         }
         Commands::SetPrice(args) => {
             todo!()

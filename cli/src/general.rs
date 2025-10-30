@@ -51,15 +51,6 @@ pub fn create_pda_account(
     let admin_pubkey = program.payer();
     let admin_key_pair = Keypair::from_base58_string(prikey);
 
-    // 创建新的账户（未来将作为 pool_state）
-    // let (pool_state_pda, _bump) = Pubkey::find_program_address(
-    //     &[
-    //         dojo_mint_pubkey.key().as_ref(),
-    //         round_period_secs.to_be_bytes().as_ref(),
-    //         POOL_STATE_SEED.as_bytes(),
-    //     ],
-    //     &program.id(),
-    // );
     let temp_account = Keypair::new();
 
     // 计算所需空间

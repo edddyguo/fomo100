@@ -44,6 +44,7 @@ pub trait State {
     fn pool_state<T: Into<Pubkey> + Clone>(
         &self,
         token_mint: &T,
+        created_at: i64,
         round_period_secs: u32,
     ) -> Result<PoolState>;
 }
@@ -89,12 +90,14 @@ impl State for Program<Rc<Keypair>> {
     fn pool_state<T: Into<Pubkey> + Clone>(
         &self,
         token_mint: &T,
+        created_at: i64,
         round_period_secs: u32,
     ) -> Result<PoolState> {
         let token_mint_pubkey: Pubkey = token_mint.clone().into();
         let (pda, _bump) = Pubkey::find_program_address(
             &[
                 token_mint_pubkey.key().as_ref(),
+                created_at.to_be_bytes().as_ref(),
                 round_period_secs.to_be_bytes().as_ref(),
                 POOL_STATE_SEED.as_bytes(),
             ],

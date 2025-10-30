@@ -150,6 +150,11 @@ pub fn current_date() -> String {
     dt.format("%Y-%m-%d %H:%M:%S.%f").to_string()
 }
 
+pub fn current_timestamp() -> i64 {
+    let dt: DateTime<Local> = Local::now();
+    dt.timestamp()
+}
+
 pub fn find_metadata_pda(mint: &Pubkey) -> Pubkey {
     let metadata_program = Pubkey::from_str(MPL_TOKEN_METADATA_ACCOUNT).unwrap();
     let (pda, _bump) = Pubkey::find_program_address(

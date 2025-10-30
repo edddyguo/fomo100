@@ -22,7 +22,7 @@ pub fn handler(ctx: Context<Claim>) -> Result<()> {
     }
 
     //当本轮次用户已经领取了，则归属奖励为0，则禁止再申领
-    let reward_amount = calculate_total_reward(current_round,&pool_state.history_rounds,&user_state.stakes)?;
+    let reward_amount = calculate_total_reward(&pool_state.history_rounds,&user_state.stakes)?;
     if reward_amount == 0 {
         return Err(StakeError::Unknown)?;
     }
@@ -43,9 +43,12 @@ pub fn handler(ctx: Context<Claim>) -> Result<()> {
    
     //进行奖励发放
     let round_period_secs_bytes = pool_state.round_period_secs.to_be_bytes();
+    let created_at_bytes = pool_state.created_at.to_be_bytes();
+
     let mint_key =  pool_state.token_mint.key();
     let signer = &[
         mint_key.as_ref(),
+        created_at_bytes.as_ref(),
         round_period_secs_bytes.as_ref(),
         POOL_STATE_SEED.as_bytes(),
         &[ctx.bumps.pool_state],

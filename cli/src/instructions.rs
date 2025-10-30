@@ -28,7 +28,9 @@ use std::str::FromStr;
 use std::u64;
 
 use crate::state::State;
-use crate::utils::{find_master_edition_pda, find_metadata_pda, get_lamport_balance};
+use crate::utils::{
+    current_timestamp, find_master_edition_pda, find_metadata_pda, get_lamport_balance,
+};
 use crate::{
     fomo100, MPL_TOKEN_METADATA_ACCOUNT, SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID, SPL_PROGRAM_ID,
     SYSTEM_PROGRAM_ID, SYSTEM_RENT_ID,
@@ -69,6 +71,7 @@ pub fn expand_pool_state<T: TryInto<Pubkey>>(
 pub fn create_pool<T: TryInto<Pubkey>>(
     program: &anchor_client::Program<Rc<Keypair>>,
     token_mint: T,
+    created_at: i64,
     round_period_secs: u32,
 ) -> Result<Pubkey> {
     let dojo_mint_pubkey: Pubkey = token_mint
@@ -79,6 +82,7 @@ pub fn create_pool<T: TryInto<Pubkey>>(
     let (pool_pda, _bump) = Pubkey::find_program_address(
         &[
             dojo_mint_pubkey.key().as_ref(),
+            created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STATE_SEED.as_bytes(),
         ],
@@ -88,7 +92,7 @@ pub fn create_pool<T: TryInto<Pubkey>>(
     let pool_vault = get_associated_token_address(&pool_pda, &dojo_mint_pubkey);
 
     println!(
-        "000____{},{},{},{},{}",
+        "\npayer_pubkey={}\n,pool_pda={},{},pool_vault={},dojo_mint_pubkey={}",
         payer_pubkey,
         pool_pda,
         pool_vault,
@@ -107,11 +111,14 @@ pub fn create_pool<T: TryInto<Pubkey>>(
             token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
             system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
         })
-        .args(fomo100::instruction::CreatePool { round_period_secs })
+        .args(fomo100::instruction::CreatePool {
+            created_at,
+            round_period_secs,
+        })
         .send()
         .unwrap();
     println!("init settings {}", init_res.to_string());
-    let collection_state = program.pool_state(&dojo_mint_pubkey, round_period_secs)?;
+    let collection_state = program.pool_state(&dojo_mint_pubkey, created_at, round_period_secs)?;
     println!("collection_state: {:?}", collection_state);
     Ok(pool_pda)
 }
@@ -139,6 +146,7 @@ pub fn set_round_reward(
 pub fn stake(
     program: &anchor_client::Program<Rc<Keypair>>,
     token_mint: &str,
+    created_at: i64,
     round_period_secs: u32,
     amount: u64,
 ) -> Result<()> {
@@ -151,6 +159,7 @@ pub fn stake(
     let (pool_pda, _bump) = Pubkey::find_program_address(
         &[
             dojo_mint_pubkey.key().as_ref(),
+            created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STATE_SEED.as_bytes(),
         ],
@@ -177,6 +186,10 @@ pub fn stake(
     );
     let init_res = program
         .request()
+        //max:
+        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(400_000))
+        //max: 128KB
+        .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
         .accounts(fomo100::accounts::Stake {
             user: payer_pubkey,
             user_state: user_state_pda,
@@ -191,8 +204,6 @@ pub fn stake(
         .send()
         .unwrap();
     println!("init settings {}", init_res.to_string());
-    let collection_state = program.pool_state(&dojo_mint_pubkey, round_period_secs)?;
-    println!("collection_state: {:?}", collection_state);
     Ok(())
 }
 

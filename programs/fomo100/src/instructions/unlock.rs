@@ -6,7 +6,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
-pub fn handler(ctx: Context<Unlock>, round_period_secs: i64) -> Result<()> {
+pub fn handler(ctx: Context<Unlock>,created_at:i64, round_period_secs: u32) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
     let pool_state = &mut ctx.accounts.pool_state;
 
@@ -22,14 +22,16 @@ pub fn handler(ctx: Context<Unlock>, round_period_secs: i64) -> Result<()> {
     //update user state
     user_state.unlock_at = Some(clock.unix_timestamp + DAY1 * UNLOCK_DAYS);
 
-    //step3: 如果有剩余的奖励尚未claim，则发给用户
-    let current_round = get_current_round_index(pool_state.created_at,clock.unix_timestamp,pool_state.round_period_secs); 
-    let reward_amount = calculate_total_reward(current_round,&pool_state.history_rounds,&user_state.stakes)?;
+    //step3: 如果有剩余的奖励尚未claim，则发给用户之前轮次的奖励，当前轮次的作废
+    let reward_amount = calculate_total_reward(&pool_state.history_rounds,&user_state.stakes)?;
     if reward_amount != 0 {
         let round_period_secs_bytes = pool_state.round_period_secs.to_be_bytes();
+        let created_at_bytes = pool_state.created_at.to_be_bytes();
+
         let token_mint_key = ctx.accounts.token_mint.key();
         let signer = &[
             token_mint_key.as_ref(),
+            created_at_bytes.as_ref(),
             round_period_secs_bytes.as_ref(),
             POOL_STATE_SEED.as_bytes(),
             &[ctx.bumps.pool_state],
@@ -56,13 +58,13 @@ pub fn handler(ctx: Context<Unlock>, round_period_secs: i64) -> Result<()> {
 }
 
 #[derive(Accounts)]
-#[instruction(round_period_secs: u32)]
+#[instruction(created_at:i64,round_period_secs: u32)]
 pub struct Unlock<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(mut, seeds=[user.key().as_ref(),pool_state.key().as_ref() , USER_STATE_SEED.as_bytes()], bump)]
     pub user_state: Account<'info, UserState>,
-    #[account(mut, seeds=[token_mint.key().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], bump)]
+    #[account(mut, seeds=[token_mint.key().as_ref(),created_at.to_be_bytes().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], bump)]
     pub pool_state: Account<'info, PoolState>,
     #[account(
         mut,

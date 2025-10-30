@@ -1,59 +1,65 @@
+use std::ops::Div;
+
 use crate::{errors::*, state::*};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
-use crate::utils::{flatten_pool_stake_snap, flatten_user_stake_snap, get_current_round_index};
+use crate::utils::{ get_current_round_index, AmountView};
 
 pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
-    require_gte!(
-        amount,
-        MINIMAL_STAKE_AMOUNT,
-        StakeError::LessThanMinimalStakeAmount
-    );
+    msg!("file {}, line: {}", file!(), line!());
+    if amount < TOKEN_SCALE as u64 || amount % (TOKEN_SCALE as u64)  != 0{
+        Err(StakeError::StakeAmountInvalid)?;
+    }
 
     let pool_state = &mut ctx.accounts.pool_state;
     let user_state = &mut ctx.accounts.user_state;
+    pool_state.validate();
+    //todo; 用固定长度数据来处理，不然每次都要reserve
+    //user_state.stakes.reserve(MAX_USER_STAKE_TIMES as usize);
+
+    msg!("file {}, line: {}", file!(), line!());
+    msg!("pool_state.history_rounds.len(): {}", pool_state.history_rounds.len());
+    msg!("user_state.stakes.len(): {}", user_state.stakes.len());
+
 
     let clock = Clock::get()?;
     let current_round_index = get_current_round_index(pool_state.created_at,clock.unix_timestamp,pool_state.round_period_secs); 
-    //let user_stakes_snap =  flatten_user_stake_snap(current_round_index,&user_state.stakes);
     //已解锁的禁止再质押
     //todo: 更多错误码
     if user_state.unlock_at.is_some(){
         Err( StakeError::Unknown)?;
     }
+    msg!("file {}, line: {}", file!(), line!());
 
-    //update pool's state
-    //todo: 临时注销后续在生产要明确告知结束了
-    // require_gt!(
-    //     ROUND_MAX,
-    //     current_round_index,
-    //     StakeError::HaveAlreadyFinished
-    // );
-    //\nindex out of bounds: the len is 0 but the index is 539",
-    //pool_state.current_round_reward += amount;
-    // let mut flatten_history_rounds = flatten_pool_stake_snap(current_round,&pool_state.history_rounds);
-    // flatten_history_rounds[current_round as usize].stake_amount += amount;
-    // pool_state.history_rounds.iter_mut().filter( = 
-    //每轮次第一个质押需要创建pool的快照，后续的更新快照
-    if let Some(round) = pool_state.history_rounds.iter_mut().find(|u| u.index == current_round_index) {
-        round.stake_amount +=  amount;
-    }else{
-        //reward 直接继承
-        let reward = pool_state.current_round_reward;
+    //整个池子的首次stake
+    let round_reward = pool_state.current_round_reward.view();
+    if pool_state.history_rounds.is_empty(){
+       //reward 直接继承
+       pool_state.history_rounds.push(Round { index: current_round_index,reward:round_reward, stake_amount:amount.view() });
+    //如果history_rounds的最后一个值等于current_round_index则说明，d当前轮次已经创建，直接更新即可
+    }else if pool_state.history_rounds.last().unwrap().index == current_round_index {
+        pool_state.history_rounds.last_mut().unwrap().stake_amount +=  amount.view();
+    //如果history_rounds的最后一个值不等于current_round_index则说明，当前为这个轮次的第一个stake
+    }else if pool_state.history_rounds.last().unwrap().index < current_round_index{
         //本地快照初始化继承上一轮的stake_amount值基础上增加当前用户质押数量
-        let stake_amount =  pool_state.history_rounds.last().map_or(0, |x|x.stake_amount) + amount;
-        pool_state.history_rounds.push(Round { index: current_round_index,reward, stake_amount });
+        let stake_amount =  pool_state.history_rounds.last().unwrap().stake_amount + amount.view();
+        pool_state.history_rounds.push(Round { index: current_round_index,reward:round_reward, stake_amount });
+    }else {
+        unreachable!("")
     }
-    
+
+    msg!("file {}, line: {}", file!(), line!());
+
     //update user state
     require_gt!(
         MAX_USER_STAKE_TIMES,
-        user_state.stakes.len() as u32,
+        user_state.stakes.len(),
         StakeError::Unknown
     );
     user_state.user = ctx.accounts.user.key();
-  
+    msg!("file {}, line: {}", file!(), line!());
+
     //如果首次质押，则历史质押值为0
     let default_stake = &UserStake::default();
     let newest_stake_amount = user_state.stakes.last().unwrap_or(&default_stake).stake_amount + amount;
@@ -61,11 +67,13 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         round_index: current_round_index,
         stake_amount: newest_stake_amount,
     };
+    msg!("file {}, line: {}", file!(), line!());
+
     match user_state.stakes.last_mut() {
-        //当前轮次，首次,
+        // //当前轮次，首次,
         Some(stake) if stake.round_index < current_round_index  => {
             user_state.stakes.push(user_stake);
-        } 
+        }
         //当前轮次，多次质押
         Some(stake) if stake.round_index == current_round_index  => {
             stake.stake_amount = newest_stake_amount;
@@ -78,20 +86,20 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
             unreachable!("{} {}",line!(),file!());
         }
     }
-    
+    msg!("file {}, line: {}", file!(), line!());
+
 
     let cpi_accounts = Transfer {
         from: ctx.accounts.user_vault.to_account_info(),
         to: ctx.accounts.pool_vault.to_account_info(),
         authority: ctx.accounts.user.to_account_info(),
     };
-
+    msg!("file {}, line: {}", file!(), line!());
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
     token::transfer(cpi_ctx, amount)?;
-
-    msg!("{} staked: {}", user_state.user, amount);
+    msg!("file {}, line: {}", file!(), line!());
 
     Ok(())
 }
@@ -107,9 +115,9 @@ pub struct Stake<'info> {
         bump,
         space = 8 + UserState::LEN
     )]
-    pub user_state: Account<'info, UserState>,
+    pub user_state: Box<Account<'info, UserState>>,
     #[account(mut)]
-    pub pool_state: Account<'info, PoolState>,
+    pub pool_state: Box<Account<'info, PoolState>>,
     #[account(mut,associated_token::mint = token_mint,associated_token::authority = user)]
     pub user_vault: InterfaceAccount<'info, TokenAccount>,
     #[account(mut, associated_token::mint = token_mint,

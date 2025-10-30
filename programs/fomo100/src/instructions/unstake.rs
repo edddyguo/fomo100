@@ -7,7 +7,7 @@ use anchor_spl::{
 };
 
 //todo: 保证逻辑上的更自然，unlock的时候会把用户的reward也顺带发给用户
-pub fn handler(ctx: Context<Unstake>, round_period_secs: i64) -> Result<()> {
+pub fn handler(ctx: Context<Unstake>,created_at:i64, round_period_secs: u32) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
     let pool_state = &mut ctx.accounts.pool_state;
 
@@ -43,9 +43,11 @@ pub fn handler(ctx: Context<Unstake>, round_period_secs: i64) -> Result<()> {
     //step3: transfer stake amount
     let token_mint_key = ctx.accounts.token_mint.key();
     let round_period_secs_bytes = pool_state.round_period_secs.to_be_bytes();
+    let created_at_bytes = pool_state.created_at.to_be_bytes();
 
     let signer = &[
         token_mint_key.as_ref(),
+        created_at_bytes.as_ref(),
         round_period_secs_bytes.as_ref(),
         POOL_STATE_SEED.as_bytes(),
         &[ctx.bumps.pool_state],
@@ -68,13 +70,13 @@ pub fn handler(ctx: Context<Unstake>, round_period_secs: i64) -> Result<()> {
 }
 
 #[derive(Accounts)]
-#[instruction(round_period_secs: u32)]
+#[instruction(created_at:i64,round_period_secs: u32)]
 pub struct Unstake<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(mut, seeds=[user.key().as_ref(),pool_state.key().as_ref() , USER_STATE_SEED.as_bytes()], bump)]
     pub user_state: Account<'info, UserState>,
-    #[account(mut, seeds=[token_mint.key().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], bump)]
+    #[account(mut, seeds=[token_mint.key().as_ref(),created_at.to_be_bytes().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], bump)]
     pub pool_state: Account<'info, PoolState>,
     #[account(
         mut,

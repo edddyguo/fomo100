@@ -6,16 +6,15 @@ use anchor_spl::{
 };
 use spl_token::solana_program::sysvar::rewards;
 
-pub fn handler(ctx: Context<CreatePool>, round_period_secs: u32) -> Result<()> {
+//创建指定开始时间的池子，设置轮次周期
+pub fn handler(ctx: Context<CreatePool>, created_at: i64, round_period_secs: u32) -> Result<()> {
     let pool_state = &mut ctx.accounts.pool_state;
-
-    let clock = Clock::get()?;
 
     pool_state.token_mint = ctx.accounts.token_mint.key();
 
     pool_state.round_period_secs = round_period_secs;
 
-    pool_state.created_at = clock.unix_timestamp;
+    pool_state.created_at = created_at;
 
     pool_state.current_round_reward = 0;
 
@@ -33,12 +32,18 @@ pub fn handler(ctx: Context<CreatePool>, round_period_secs: u32) -> Result<()> {
 }
 
 #[derive(Accounts)]
-#[instruction(round_period_secs: u32)]
+#[instruction(created_at:i64,round_period_secs: u32)]
 pub struct CreatePool<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
     //init pool state by ended_at
-    #[account(init, payer=admin, seeds=[token_mint.key().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], bump, space=8 + PoolState::LEN)]
+    #[account(
+        init,
+        payer=admin, 
+        seeds=[token_mint.key().as_ref(),created_at.to_be_bytes().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], 
+        bump,
+        space=8 + PoolState::LEN
+    )]
     pub pool_state: Account<'info, PoolState>,
     #[account(
         init,
