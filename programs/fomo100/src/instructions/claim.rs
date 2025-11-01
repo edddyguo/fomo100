@@ -1,3 +1,5 @@
+use crate::utils::calculate_total_reward;
+use crate::utils::flatten_user_stake_snap;
 use crate::{errors::*, state::*, utils::get_current_round_index};
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -5,8 +7,6 @@ use anchor_spl::{
     token::{self, Transfer},
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
-use crate::utils::calculate_total_reward;
-use crate::utils::flatten_user_stake_snap;
 
 //领取到目前为止的奖励
 pub fn handler(ctx: Context<Claim>) -> Result<()> {
@@ -15,7 +15,7 @@ pub fn handler(ctx: Context<Claim>) -> Result<()> {
     // let user_state = &mut ctx.accounts.user_state;
 
     // let clock = Clock::get()?;
-    // let current_round = get_current_round_index(pool_state.created_at,clock.unix_timestamp,pool_state.round_period_secs); 
+    // let current_round = get_current_round_index(pool_state.created_at,clock.unix_timestamp,pool_state.round_period_secs);
     // let user_stakes_snap =  flatten_user_stake_snap(current_round,&user_state.stakes);
     // //已解锁的禁止再claim
     // if user_state.unlock_at.is_some(){
@@ -41,7 +41,6 @@ pub fn handler(ctx: Context<Claim>) -> Result<()> {
     // user_state.stakes = vec![user_stake];
     // user_state.claimed_reward += reward_amount;
 
-   
     // //进行奖励发放
     // let round_period_secs_bytes = pool_state.round_period_secs.to_be_bytes();
     // let created_at_bytes = pool_state.created_at.to_be_bytes();

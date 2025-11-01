@@ -1,40 +1,17 @@
 use anchor_client::anchor_lang::prelude::Pubkey;
-use anchor_client::anchor_lang::solana_program::program_pack::Pack;
 use anchor_client::anchor_lang::Key;
-use anchor_client::solana_sdk::signature::read_keypair_file;
-use anchor_client::solana_sdk::signature::{Keypair, Signer};
-use anchor_client::{Client, Cluster};
+use anchor_client::solana_sdk::signature::Keypair;
 use anyhow::{anyhow, Result};
-use borsh::BorshDeserialize;
-use fomo100::accounts as fomo100_accounts;
-use fomo100::instruction as fomo100_instructions;
-use fomo100::instructions::create_pool::CreatePool;
 use fomo100::state::*;
-use mpl_token_metadata::types::Collection;
-use serde_json::json;
-use solana_client::nonce_utils::get_account;
-use solana_client::rpc_client::RpcClient;
-use solana_sdk::account::ReadableAccount;
-use solana_sdk::commitment_config::CommitmentConfig;
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
-use solana_sdk::ed25519_instruction;
-use solana_sdk::instruction::Instruction;
-use solana_sdk::timing::timestamp;
 use spl_associated_token_account::get_associated_token_address;
-use spl_token::state::{Account, AccountState};
-use std::fs::Metadata;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::u64;
 
 use crate::state::State;
-use crate::utils::{
-    current_timestamp, find_master_edition_pda, find_metadata_pda, get_lamport_balance,
-};
-use crate::{
-    fomo100, MPL_TOKEN_METADATA_ACCOUNT, SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID, SPL_PROGRAM_ID,
-    SYSTEM_PROGRAM_ID, SYSTEM_RENT_ID,
-};
+use crate::utils::get_lamport_balance;
+use crate::{SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID, SPL_PROGRAM_ID, SYSTEM_PROGRAM_ID};
 
 pub fn expand_pool_state<T: TryInto<Pubkey>>(
     program: &anchor_client::Program<Rc<Keypair>>,
@@ -73,6 +50,7 @@ pub fn create_pool<T: TryInto<Pubkey>>(
     token_mint: T,
     created_at: i64,
     round_period_secs: u32,
+    round_reward: u64,
 ) -> Result<Pubkey> {
     let dojo_mint_pubkey: Pubkey = token_mint
         .try_into()
@@ -126,6 +104,7 @@ pub fn create_pool<T: TryInto<Pubkey>>(
         .args(fomo100::instruction::CreatePool {
             created_at,
             round_period_secs,
+            round_reward,
         })
         .send()
         .unwrap();
@@ -249,7 +228,6 @@ pub fn init_airdrop_and_mint(
     todo!()
 }
 
-use fomo100::constants::INIT_AIRDROP_SIGN_PREFIX;
 pub fn sign_airdrop(
     program: &anchor_client::Program<Rc<Keypair>>,
     prikey: &String,

@@ -1,21 +1,12 @@
+use anchor_client::solana_sdk::commitment_config::CommitmentConfig;
 use anchor_client::ClientError;
-use anchor_client::{solana_sdk::commitment_config::CommitmentConfig, Client};
 
-use anyhow::anyhow;
 use anyhow::Result;
 use chrono::prelude::*;
 //use mpl_token_metadata::pda::{find_master_edition_account, find_metadata_account};
-use fomo100::state::UserState;
-use solana_account_decoder::UiAccountEncoding;
-use solana_client::{
-    rpc_client::RpcClient,
-    rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
-    rpc_filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
-};
-use solana_sdk::signature::Keypair;
-use solana_sdk::{program_pack::Pack, signer::Signer};
+use solana_client::rpc_client::RpcClient;
+use solana_sdk::program_pack::Pack;
 use spl_associated_token_account::get_associated_token_address;
-use spl_token::state::Account;
 use spl_token::state::Account as TokenAccount;
 use tokio::runtime::Runtime;
 
@@ -28,7 +19,6 @@ use tokio::runtime::Runtime;
 //use composite::instruction as composite_instruction;
 //use composite::{DummyA, DummyB};
 
-use std::rc::Rc;
 use std::str::FromStr;
 
 use anchor_client::anchor_lang::prelude::Pubkey;
@@ -45,7 +35,7 @@ use {
 
 use solana_sdk::account::ReadableAccount;
 
-use crate::{MPL_TOKEN_METADATA_ACCOUNT, SPL_PROGRAM_ID};
+use crate::MPL_TOKEN_METADATA_ACCOUNT;
 
 use mpl_token_metadata::ID as METAPLEX_PROGRAM_ID;
 

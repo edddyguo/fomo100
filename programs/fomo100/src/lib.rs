@@ -23,8 +23,9 @@ pub mod fomo100 {
         ctx: Context<CreatePool>,
         created_at: i64,
         round_period_secs: u32,
+        round_reward: u64,
     ) -> Result<()> {
-        instructions::create_pool::handler(ctx, created_at, round_period_secs)
+        instructions::create_pool::handler(ctx, created_at, round_period_secs, round_reward)
     }
 
     pub fn expand_pool_state(ctx: Context<ExpandPoolState>) -> Result<()> {

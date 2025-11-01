@@ -1,4 +1,8 @@
-use crate::{errors::*, state::*, utils::{calculate_total_reward, get_current_round_index, DAY1}};
+use crate::{
+    errors::*,
+    state::*,
+    utils::{calculate_total_reward, get_current_round_index, DAY1},
+};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -6,7 +10,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
-pub fn handler(ctx: Context<Unlock>,created_at:i64, round_period_secs: u32) -> Result<()> {
+pub fn handler(ctx: Context<Unlock>, created_at: i64, round_period_secs: u32) -> Result<()> {
     // let user_state = &mut ctx.accounts.user_state;
     // let pool_store = &mut ctx.accounts.pool_store.load_init()?;
     // let pool_state = &mut ctx.accounts.pool_state;
@@ -16,7 +20,7 @@ pub fn handler(ctx: Context<Unlock>,created_at:i64, round_period_secs: u32) -> R
     // if user_state.unlock_at.is_some(){
     //     Err( StakeError::Unknown)?;
     // }
-   
+
     // //update pool state
     // pool_state.unlocking_users += 1;
     // pool_state.unlocking_stake_amount += user_state.stakes.last().expect("when unlock,user must have already stake").stake_amount;
@@ -37,18 +41,18 @@ pub fn handler(ctx: Context<Unlock>,created_at:i64, round_period_secs: u32) -> R
     //         POOL_STATE_SEED.as_bytes(),
     //         &[ctx.bumps.pool_state],
     //     ];
-    
+
     //     let cpi_accounts = Transfer {
     //         from: ctx.accounts.pool_vault.to_account_info(),
     //         to: ctx.accounts.user_vault.to_account_info(),
     //         authority: ctx.accounts.pool_state.to_account_info(),
     //     };
-    
+
     //     let cpi_program = ctx.accounts.token_program.to_account_info();
     //     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-    
+
     //     token::transfer(cpi_ctx.with_signer(&[signer]), reward_amount)?;
-    
+
     //     msg!(
     //         "{} unlock and claimed: {},)",
     //         user_state.user,
@@ -86,5 +90,3 @@ pub struct Unlock<'info> {
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
-
-

@@ -7,15 +7,13 @@ use anchor_spl::{
 use spl_token::solana_program::sysvar::rewards;
 
 //创建指定开始时间的池子，设置轮次周期
-pub fn handler(ctx: Context<CreatePool>, created_at: i64, round_period_secs: u32) -> Result<()> {
+pub fn handler(
+    ctx: Context<CreatePool>,
+    created_at: i64,
+    round_period_secs: u32,
+    round_reward: u64,
+) -> Result<()> {
     let pool_store = &mut ctx.accounts.pool_store.load_init()?;
-    // pub struct PoolStore {
-    //     pub len: u32, // 当前有效长度
-    //     pub round_index: [u16; ROUND_MAX],
-    //     //最多更改256回的奖池资金
-    //     pub reward_index: [u8; ROUND_MAX],
-    //     pub stake_amount: [u32; ROUND_MAX],
-    // }
     pool_store.len = 0;
     pool_store.round_index = std::array::from_fn(|_| Default::default());
     pool_store.reward_index = std::array::from_fn(|_| Default::default());
@@ -37,7 +35,7 @@ pub fn handler(ctx: Context<CreatePool>, created_at: i64, round_period_secs: u32
 
     pool_state.claimed_reward = 0;
 
-    pool_state.history_round_rewards = Vec::new();
+    pool_state.history_round_rewards = vec![round_reward];
 
     msg!(
         "Initialize pool {}",

@@ -6,8 +6,9 @@ pub const TOKEN_SCALE: u32 = 1_000_000;
 //note：为了内存对齐，此值必须是4的倍数
 pub const ROUND_MAX: usize = 1096;
 //折衷的选择，允许用户累积100次天的快照，这是够用的，
-//且当用户万一不够了，进行一次claim就行，这会删除之前的快照数据
 pub const MAX_USER_STAKE_TIMES: usize = 300;
+//最多设置100次奖励池子
+pub const MAX_REWARD_RECORDS: usize = 100;
 pub const UNLOCK_DAYS: i64 = 30;
 
 //todo:用户抵押的钱单独申请一个account，当前先放在pool_vault中
@@ -62,6 +63,7 @@ pub struct Round {
 #[derive(Debug)]
 pub struct PoolState {
     pub token_mint: Pubkey,
+    pub admin: Pubkey,
     pub round_period_secs: u32,
     pub unlocking_stake_amount: u64,
     //note: 此处不能超过256
@@ -75,10 +77,7 @@ pub struct PoolState {
 }
 
 impl PoolState {
-    //初始化仅申请10个轮次的空间
-    //note:当前使用了zero_copy，不会用到该值
-    //pub const LEN: usize = 32 + 4 + 8 + 8 + (4 + ROUND_MAX as usize * (2 + 4 + 4)) + 4 + 8 + 8;
-    pub const LEN: usize = 32 + 4 + 8 + 8 + 8 + 8 + 100 * 8 + 4;
+    pub const LEN: usize = 32 + 32 + 4 + 8 + 8 + 8 + 8 + MAX_REWARD_RECORDS * 8 + 4;
 }
 
 #[account(zero_copy)]

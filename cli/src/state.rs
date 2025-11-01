@@ -1,27 +1,14 @@
-use anchor_client::anchor_lang::accounts::account::Account;
 use anchor_client::anchor_lang::Key;
-use anchor_client::solana_sdk::commitment_config::CommitmentConfig;
-use anchor_client::solana_sdk::signature::Signer;
-
-use anchor_client::Client;
 
 use anyhow::Result;
 use fomo100::state::PoolState;
 use fomo100::state::UserState;
-use fomo100::state::USER_STATE_SEED;
 use fomo100::state::*;
-use solana_client::rpc_client::RpcClient;
 use solana_sdk::signature::Keypair;
-use spl_associated_token_account::get_associated_token_address;
 
 use std::rc::Rc;
-use std::str::FromStr;
 
 use anchor_client::anchor_lang::prelude::Pubkey;
-use solana_sdk::account::ReadableAccount;
-
-use crate::SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID;
-use crate::SPL_PROGRAM_ID;
 
 use anchor_client::Program;
 #[cfg(feature = "serde-feature")]

@@ -7,31 +7,35 @@ use anchor_spl::{
 };
 
 //todo: 保证逻辑上的更自然，unlock的时候会把用户的reward也顺带发给用户
-pub fn handler(ctx: Context<Unstake>,created_at:i64, round_period_secs: u32) -> Result<()> {
+pub fn handler(ctx: Context<Unstake>, created_at: i64, round_period_secs: u32) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
     let pool_state = &mut ctx.accounts.pool_state;
 
     let clock = Clock::get()?;
 
     if user_state.is_unstaked {
-        Err( StakeError::Unknown)?;
+        Err(StakeError::Unknown)?;
     }
-    
+
     match user_state.unlock_at {
         Some(time) if clock.unix_timestamp > time => {
             msg!("start unstake");
         }
         Some(_) => {
-             //未到解锁时间
-             Err( StakeError::Unknown)?;
+            //未到解锁时间
+            Err(StakeError::Unknown)?;
         }
         None => {
             //尚未解锁
-            Err( StakeError::Unknown)?;
+            Err(StakeError::Unknown)?;
         }
     }
     //todo:解除质押的尽量把用户的account也给回收掉，不刚需
-    let staked_amount = user_state.stakes.last().expect("when unlock,user must have already stake").stake_amount;
+    let staked_amount = user_state
+        .stakes
+        .last()
+        .expect("when unlock,user must have already stake")
+        .stake_amount;
 
     //update user state
     user_state.is_unstaked = true;
@@ -39,7 +43,6 @@ pub fn handler(ctx: Context<Unstake>,created_at:i64, round_period_secs: u32) -> 
     //update pool state
     //todo:
     //pool_state.claimed_reward += staked_amount;
-
 
     //step3: transfer stake amount
     let token_mint_key = ctx.accounts.token_mint.key();
@@ -65,7 +68,7 @@ pub fn handler(ctx: Context<Unstake>,created_at:i64, round_period_secs: u32) -> 
 
     token::transfer(cpi_ctx.with_signer(&[signer]), staked_amount)?;
 
-    msg!("{} unstaked: {})",user_state.user,staked_amount,);
+    msg!("{} unstaked: {})", user_state.user, staked_amount,);
 
     Ok(())
 }
@@ -96,5 +99,3 @@ pub struct Unstake<'info> {
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
-
-

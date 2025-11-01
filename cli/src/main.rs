@@ -6,25 +6,18 @@ pub mod state;
 pub mod utils;
 
 use crate::state::State;
-use crate::utils::*;
 use anchor_client::anchor_lang::prelude::Pubkey;
 use anchor_client::solana_sdk::commitment_config::CommitmentConfig;
 use anchor_client::{Client, Cluster};
 use anyhow::Result;
 use clap::Parser;
 use clap::Subcommand;
-use fomo100::constants::INIT_AIRDROP_SIGN_PREFIX;
-use math::coin_amount::display2raw;
-use service::SetNftClaimSigRequest;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signer::Signer;
-use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
-use std::thread::{self, sleep};
+use std::thread::sleep;
 use std::time::Duration;
-use tokio::runtime::Runtime;
-use utils::{current_date, get_lamport_balance};
 
 #[cfg(feature = "serde-feature")]
 use {
@@ -53,6 +46,8 @@ pub struct CreatePoolArgs {
     pub created_at: i64,
     #[clap(long)]
     pub round_period_secs: u32,
+    #[clap(long)]
+    pub round_reward: u64,
 }
 
 #[derive(Parser, Debug)]
@@ -202,7 +197,7 @@ let url = Cluster::Custom(
 static mut RPC: Option<String> = None;
 static mut PRIKEY: Option<String> = None;
 
-const fomo100: &str = "79iwpmjk5mh2acXp2SQxh2JpmNqji76FQQAH4erCCuhu";
+const FOMO100: &str = "79iwpmjk5mh2acXp2SQxh2JpmNqji76FQQAH4erCCuhu";
 const K_COIN: &'static str = "5d1i4wKHhGXXkdZB22iKD1SqU6pkBeTCwFEMqo7xy39h";
 const SPL_PROGRAM_ID: &'static str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 //一键生成NFT的合约,待废弃
@@ -252,6 +247,7 @@ fn main() -> Result<()> {
                 args.token_mint.as_str(),
                 args.created_at,
                 args.round_period_secs,
+                args.round_reward,
             )?;
         }
         Commands::ExpandPoolState(args) => {

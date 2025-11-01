@@ -1,39 +1,16 @@
 //todo: some solana api
 use anchor_client::anchor_lang::prelude::Pubkey;
-use anchor_client::anchor_lang::Key;
 use anchor_client::solana_sdk::commitment_config::CommitmentConfig;
-use anchor_client::ClientError;
 use anyhow::anyhow;
 use anyhow::Result;
-use chrono::prelude::*;
 use fomo100::state::PoolState;
-use fomo100::state::POOL_STATE_SEED;
-use serde::Deserialize;
-use serde::Serialize;
-use solana_account_decoder::UiAccountEncoding;
-use solana_client::rpc_config::RpcTransactionConfig;
-use solana_client::{
-    rpc_client::RpcClient,
-    rpc_config::{RpcAccountInfoConfig, RpcProgramAccountsConfig},
-    rpc_filter::{Memcmp, MemcmpEncodedBytes, RpcFilterType},
-};
+use solana_client::rpc_client::RpcClient;
 use solana_sdk::program_pack::Pack;
 use solana_sdk::signature::Keypair;
-use solana_sdk::signature::Signature;
-use solana_sdk::signer::Signer;
-use solana_sdk::system_instruction;
 use solana_sdk::transaction::Transaction;
 use spl_associated_token_account::create_associated_token_account;
-use spl_associated_token_account::get_associated_token_address;
 use spl_token::instruction::transfer;
-use spl_token::state::Account;
-use spl_token::state::Account as TokenAccount;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
-use std::io::Write;
 use std::rc::Rc;
-use std::str::FromStr;
 //for fomo100
 pub fn create_pda_account(
     program: &anchor_client::Program<Rc<Keypair>>,
