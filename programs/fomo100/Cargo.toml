@@ -16,9 +16,12 @@ no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 
+
 [dependencies]
 borsh = { version = "0.10.3", features = [] }
-anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
-anchor-spl = { version = "0.31.1", features = ["associated_token", "metadata"] }
+##anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
+anchor-spl = { version = "0.32.1", features = ["associated_token", "metadata"] }
 spl-token = { version = "7.0.0", features = ["no-entrypoint"] }
 mpl-token-metadata = "5.1.0"
+bytemuck = { version = "1.20.0", features = ["min_const_generics"] }

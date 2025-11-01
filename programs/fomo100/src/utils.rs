@@ -19,7 +19,7 @@ pub fn current_round_index(pool_init: i64) -> Result<i64> {
 //将质押的记录，展开为对应轮次的记录,
 //展开后用户轮次和pool轮次保持一致，
 //hack: to optimize, 没必要全部展开，可以在使用的时候加上，对应index没有的话，就使用上一个轮次的值，这个逻辑
-pub fn flatten_user_stake_snap(current_round_index: u16, user_stakes: &Vec<UserStake>) -> Vec<u64> {
+pub fn flatten_user_stake_snap(current_round_index: u32, user_stakes: &Vec<UserStake>) -> Vec<u64> {
     let mut stake_snaps = vec![];
     //如果用户没有质押，则历史值全为零
     let mut last_stake_amount = user_stakes.last().map(|x| x.stake_amount).unwrap_or(0);
@@ -89,10 +89,7 @@ pub fn flatten_user_stake_snap(current_round_index: u16, user_stakes: &Vec<UserS
 // }
 
 //根据轮次历史快照和用户stake的历史记录，计算总的奖励金额
-pub fn calculate_total_reward(
-    pool_rounds: &Vec<Round>,
-    user_stakes: &Vec<UserStake>,
-) -> Result<u64> {
+pub fn calculate_total_reward(pool_rounds: &[Round], user_stakes: &Vec<UserStake>) -> Result<u64> {
     // 至少要有2个轮次（最后一个未结束）
     if pool_rounds.len() <= 1 || user_stakes.len() <= 1 {
         return Ok(0);
@@ -106,13 +103,13 @@ pub fn calculate_total_reward(
 
     for user_stake in user_stakes {
         // 顺序扫描直到找到对应 round_index
-        while i < pool_rounds.len() && pool_rounds[i].index < user_stake.round_index {
+        while i < pool_rounds.len() && pool_rounds[i].index < user_stake.round_index as u32 {
             i += 1;
         }
 
         // 找不到直接 panic（逻辑上不该发生）
         assert!(
-            i < pool_rounds.len() && pool_rounds[i].index == user_stake.round_index,
+            i < pool_rounds.len() && pool_rounds[i].index == user_stake.round_index as u32,
             "Pool round for index {} not found (user state corrupted)",
             user_stake.round_index
         );
@@ -134,97 +131,97 @@ pub fn calculate_total_reward(
 }
 
 //向下取整
-pub fn get_current_round_index(init_at: i64, now: i64, period: u32) -> u16 {
-    ((now - init_at) / (period as i64)) as u16
+pub fn get_current_round_index(init_at: i64, now: i64, period: u32) -> u32 {
+    ((now - init_at) / (period as i64)) as u32
 }
 
-// FixedVec 基于数组实现
-// #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
-// pub struct FixedVec<T: Default, const N: usize> {
+use bytemuck::{Pod, Zeroable};
+
+//FixedVec 基于数组实现
+// #[derive(Debug, Clone, Copy, Zeroable, Pod)]
+// #[repr(C)] // 使用 C 语言的内存布局
+// pub struct FixedVec<T: Default + Copy, const N: usize> {
+//     pub len: u32, // 当前有效长度
 //     pub data: [T; N],
-//     pub len: usize, // 当前有效长度
 // }
 
-// impl<T: Default, const N: usize> FixedVec<T, N> {
-//     pub fn new() -> Self {
-//         Self {
-//             data: std::array::from_fn(|_| T::default()),
-//             len: 0,
-//         }
-//     }
+#[derive(Debug, Clone, Copy, Zeroable, Pod)]
+#[repr(C)] // 强制无填充
+pub struct RoundSnaps {
+    pub len: u32, // 当前有效长度
+    pub data: [Round; ROUND_MAX],
+}
 
-//     pub fn len(&self) -> usize {
-//         self.len
-//     }
-//     pub fn is_empty(&self) -> bool {
-//         self.len == 0
-//     }
+impl RoundSnaps {
+    pub fn new() -> Self {
+        Self {
+            data: std::array::from_fn(|_| Round::default()),
+            len: 0,
+        }
+    }
 
-//     /// 类似 Vec::push
-//     pub fn push(&mut self, value: T) -> Result<()> {
-//         if self.len < N {
-//             self.data[self.len] = value;
-//             self.len += 1;
-//             Ok(())
-//         } else {
-//             Err(anchor_lang::error::ErrorCode::AccountDidNotSerialize.into())
-//         }
-//     }
+    pub fn len(&self) -> usize {
+        self.len as usize
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
 
-//     /// 类似 Vec::last
-//     pub fn last(&self) -> Option<&T> {
-//         if self.len == 0 {
-//             None
-//         } else {
-//             Some(&self.data[self.len - 1])
-//         }
-//     }
+    /// 类似 Vec::push
+    pub fn push(&mut self, value: Round) -> Result<()> {
+        if self.len() < ROUND_MAX {
+            self.data[self.len()] = value;
+            self.len += 1;
+            Ok(())
+        } else {
+            Err(anchor_lang::error::ErrorCode::AccountDidNotSerialize.into())
+        }
+    }
 
-//     /// 获取可变引用
-//     pub fn last_mut(&mut self) -> Option<&mut T> {
-//         if self.len == 0 {
-//             None
-//         } else {
-//             Some(&mut self.data[self.len - 1])
-//         }
-//     }
+    /// 类似 Vec::last
+    pub fn last(&self) -> Option<&Round> {
+        if self.len == 0 {
+            None
+        } else {
+            Some(&self.data[self.len() - 1])
+        }
+    }
 
-//     /// 替换最后一个元素的值
-//     pub fn replace_last(&mut self, value: T) -> Result<()> {
-//         if self.len == 0 {
-//             Err(anchor_lang::error::ErrorCode::AccountDidNotSerialize.into())
-//         } else {
-//             self.data[self.len - 1] = value;
-//             Ok(())
-//         }
-//     }
+    /// 获取可变引用
+    pub fn last_mut(&mut self) -> Option<&mut Round> {
+        if self.len == 0 {
+            None
+        } else {
+            Some(&mut self.data[self.len() - 1])
+        }
+    }
 
-//     /// 根据 index 获取元素
-//     pub fn get(&self, index: usize) -> Option<&T> {
-//         if index < self.len {
-//             Some(&self.data[index])
-//         } else {
-//             None
-//         }
-//     }
+    /// 根据 index 获取元素
+    pub fn get(&self, index: usize) -> Option<&Round> {
+        if index < self.len() {
+            Some(&self.data[index])
+        } else {
+            None
+        }
+    }
 
-//     /// 根据 index 获取可变元素
-//     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-//         if index < self.len {
-//             Some(&mut self.data[index])
-//         } else {
-//             None
-//         }
-//     }
-// }
+    /// 根据 index 获取可变元素
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Round> {
+        if index < self.len() {
+            Some(&mut self.data[index])
+        } else {
+            None
+        }
+    }
+}
 
-// impl<T: Default, const N: usize> Deref for FixedVec<T, N> {
-//     type Target = [T];
+impl Deref for RoundSnaps {
+    type Target = [Round];
 
-//     fn deref(&self) -> &Self::Target {
-//         &self.data[..self.len]
-//     }
-// }
+    fn deref(&self) -> &Self::Target {
+        &self.data[..self.len()]
+    }
+}
 
 pub trait AmountRaw {
     fn raw(self) -> u64;
@@ -243,5 +240,12 @@ pub trait AmountView {
 impl AmountView for u64 {
     fn view(self) -> u32 {
         (self / TOKEN_SCALE as u64) as u32
+    }
+}
+
+fn tuples_to_round_slice(tuples: &[(u32, u32, u32)]) -> &[Round] {
+    unsafe {
+        // 强制转换 slice 的指针
+        std::slice::from_raw_parts(tuples.as_ptr() as *const Round, tuples.len())
     }
 }

@@ -1,4 +1,4 @@
-use crate::state::*;
+use crate::{state::*, utils::RoundSnaps};
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -8,6 +8,11 @@ use spl_token::solana_program::sysvar::rewards;
 
 //创建指定开始时间的池子，设置轮次周期
 pub fn handler(ctx: Context<CreatePool>, created_at: i64, round_period_secs: u32) -> Result<()> {
+
+    let pool_store = &mut ctx.accounts.pool_store.load_init()?;
+
+    **pool_store = PoolStore::new();
+
     let pool_state = &mut ctx.accounts.pool_state;
 
     pool_state.token_mint = ctx.accounts.token_mint.key();
@@ -18,15 +23,16 @@ pub fn handler(ctx: Context<CreatePool>, created_at: i64, round_period_secs: u32
 
     pool_state.current_round_reward = 0;
 
-    pool_state.history_rounds = Vec::new();
-
     pool_state.unlocking_users = 0;
 
     pool_state.unlocking_stake_amount = 0;
 
     pool_state.claimed_reward = 0;
 
-    msg!("Initialize pool {}", pool_state.to_account_info().key());
+    msg!(
+        "Initialize pool {}",
+        ctx.accounts.pool_state.to_account_info().key()
+    );
 
     Ok(())
 }
@@ -39,12 +45,18 @@ pub struct CreatePool<'info> {
     //init pool state by ended_at
     #[account(
         init,
-        payer=admin, 
-        seeds=[token_mint.key().as_ref(),created_at.to_be_bytes().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], 
+        payer=admin,
+        seeds=[token_mint.key().as_ref(),created_at.to_be_bytes().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()],
         bump,
         space=8 + PoolState::LEN
     )]
     pub pool_state: Account<'info, PoolState>,
+    #[account(
+        zero,
+        seeds=[token_mint.key().as_ref(),created_at.to_be_bytes().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STORE_SEED.as_bytes()], 
+        bump,
+    )]
+    pub pool_store: AccountLoader<'info, PoolStore>,
     #[account(
         init,
         associated_token::mint = token_mint,
