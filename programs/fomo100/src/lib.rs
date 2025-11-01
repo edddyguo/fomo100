@@ -32,6 +32,10 @@ pub mod fomo100 {
         instructions::expand_pool_state::handler(ctx)
     }
 
+    pub fn set_round_reward(ctx: Context<SetRoundReward>, round_reward: u64) -> Result<()> {
+        instructions::set_round_reward::handler(ctx, round_reward)
+    }
+
     pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
         instructions::stake::handler(ctx, amount)
     }

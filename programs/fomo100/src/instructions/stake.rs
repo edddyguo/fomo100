@@ -3,6 +3,7 @@ use std::ops::Div;
 use crate::utils::{get_current_round_index, AmountView};
 use crate::{errors::*, state::*};
 use anchor_lang::prelude::*;
+use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{self, Transfer};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
@@ -36,7 +37,7 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     msg!("file {}, line: {}", file!(), line!());
 
     //整个池子的首次stake
-    let current_reward_index = pool_state.history_round_rewards.len() as u8;
+    let current_reward_index = pool_state.history_round_rewards.len() as u8 - 1;
 
     if pool_store.is_empty() {
         //reward 直接继承
@@ -106,8 +107,8 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     msg!("file {}, line: {}", file!(), line!());
 
     let cpi_accounts = Transfer {
-        from: ctx.accounts.user_vault.to_account_info(),
-        to: ctx.accounts.pool_vault.to_account_info(),
+        from: ctx.accounts.user_ata.to_account_info(),
+        to: ctx.accounts.user_vault.to_account_info(),
         authority: ctx.accounts.user.to_account_info(),
     };
     msg!("file {}, line: {}", file!(), line!());
@@ -124,6 +125,17 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
 pub struct Stake<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
+    /// 奖池状态
+    #[account(mut)]
+    pub pool_state: Box<Account<'info, PoolState>>,
+    ///奖池资金库
+    #[account(
+        mut, 
+        associated_token::mint = token_mint,
+        associated_token::authority = pool_state
+    )]
+    pub pool_vault: InterfaceAccount<'info, TokenAccount>,
+    /// 用户状态
     #[account(
         init_if_needed,
         payer=user,
@@ -132,17 +144,23 @@ pub struct Stake<'info> {
         space = 8 + UserState::LEN
     )]
     pub user_state: Box<Account<'info, UserState>>,
-    #[account(mut)]
-    pub pool_state: Box<Account<'info, PoolState>>,
+    /// 用户质押的ata
+    #[account(
+        init_if_needed,
+        payer=user, 
+        associated_token::mint = token_mint,
+        associated_token::authority = user_state
+    )]
+    pub user_vault: InterfaceAccount<'info, TokenAccount>,
+    /// 池子历史快照
     #[account(mut)]
     pub pool_store: AccountLoader<'info, PoolStore>,
+    /// 用户ata
     #[account(mut,associated_token::mint = token_mint,associated_token::authority = user)]
-    pub user_vault: InterfaceAccount<'info, TokenAccount>,
-    #[account(mut, associated_token::mint = token_mint,
-        associated_token::authority = pool_state)]
-    pub pool_vault: InterfaceAccount<'info, TokenAccount>,
+    pub user_ata: InterfaceAccount<'info, TokenAccount>,
     #[account(mut, constraint = token_mint.key() == pool_state.token_mint @ StakeError::NotMatchMint)]
     pub token_mint: InterfaceAccount<'info, Mint>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }

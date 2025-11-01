@@ -123,15 +123,42 @@ pub fn set_admin(
     todo!()
 }
 
-pub fn set_round_reward(
+pub fn set_round_reward<T: TryInto<Pubkey>>(
     program: &anchor_client::Program<Rc<Keypair>>,
-    //collection_mint: Pubkey,
-    name: String,
-    sol_price: Option<u64>,
-    settle_token_price: Option<u64>,
-    settle_token: Option<String>,
+    token_mint: T,
+    created_at: i64,
+    round_period_secs: u32,
+    round_reward: u64,
 ) -> Result<()> {
-    todo!()
+    let dojo_mint_pubkey: Pubkey = token_mint
+        .try_into()
+        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    let payer_pubkey = program.payer();
+
+    let (pool_state_pda, _bump) = Pubkey::find_program_address(
+        &[
+            dojo_mint_pubkey.key().as_ref(),
+            created_at.to_be_bytes().as_ref(),
+            round_period_secs.to_be_bytes().as_ref(),
+            POOL_STATE_SEED.as_bytes(),
+        ],
+        &program.id(),
+    );
+
+    let res = program
+        .request()
+        .accounts(fomo100::accounts::SetRoundReward {
+            admin: payer_pubkey,
+            pool_state: pool_state_pda.clone(),
+            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+        })
+        .args(fomo100::instruction::SetRoundReward { round_reward })
+        .send()
+        .unwrap();
+    println!("call res:  {}", res.to_string());
+    let pool_state = program.pool_state(&dojo_mint_pubkey, created_at, round_period_secs)?;
+    println!("pool_state: {:?}", pool_state);
+    Ok(())
 }
 
 pub fn stake(
@@ -176,14 +203,26 @@ pub fn stake(
         &program.id(),
     );
 
-    let user_vault = get_associated_token_address(&payer_pubkey, &dojo_mint_pubkey);
+    let user_vault = get_associated_token_address(&user_state_pda, &dojo_mint_pubkey);
+
+    let user_ata = get_associated_token_address(&payer_pubkey, &dojo_mint_pubkey);
 
     println!(
-        "000____payer_pubkey={},
-        pool_state_pda={},pool_vault={},
-        dojo_mint_pubkey={},user_vault={}
+        "payer_pubkey={},
+        pool_state_pda={},
+        pool_vault={},
+        dojo_mint_pubkey={},
+        user_state_pda={},
+        user_vault={},
+        user_ata={}
         ",
-        payer_pubkey, pool_state_pda, pool_vault, dojo_mint_pubkey, user_vault
+        payer_pubkey,
+        pool_state_pda,
+        pool_vault,
+        dojo_mint_pubkey,
+        user_state_pda,
+        user_vault,
+        user_ata
     );
     let init_res = program
         .request()
@@ -194,11 +233,14 @@ pub fn stake(
         .accounts(fomo100::accounts::Stake {
             user: payer_pubkey,
             user_state: user_state_pda,
+            user_vault,
             pool_state: pool_state_pda.clone(),
             pool_store: pool_store_pda.clone(),
-            user_vault,
+            user_ata,
             pool_vault: pool_vault,
             token_mint: dojo_mint_pubkey.clone(),
+            associated_token_program: Pubkey::from_str(SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID)
+                .unwrap(),
             token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
             system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
         })

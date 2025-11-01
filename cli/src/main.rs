@@ -65,15 +65,17 @@ pub struct StakeArgs {
 }
 
 #[derive(Parser, Debug)]
-pub struct SetAdminArgs {
+pub struct SetRoundRewardArgs {
     #[clap(long)]
-    pub minter_program_id: String,
+    pub program_id: String,
     #[clap(long)]
-    pub new_admin: Option<String>,
+    pub token_mint: String,
     #[clap(long)]
-    pub new_validator: Option<String>,
+    pub created_at: i64,
     #[clap(long)]
-    pub new_treasurer: Option<String>,
+    pub round_period_secs: u32,
+    #[clap(long)]
+    pub round_reward: u64,
 }
 
 #[derive(Parser, Debug)]
@@ -153,7 +155,7 @@ pub enum Commands {
     ExpandPoolState(ExpandPoolState),
     CreatePool(CreatePoolArgs),
     Stake(StakeArgs),
-    SetAdmin(SetAdminArgs),
+    SetRoundReward(SetRoundRewardArgs),
     PoolState(PoolStateArgs),
     SetPrice(SetPriceArgs),
     InitAirdrop(InitAirdropArgs),
@@ -267,8 +269,16 @@ fn main() -> Result<()> {
                 args.stake_amount,
             )?;
         }
-        Commands::SetAdmin(args) => {
-            todo!()
+        //only admin can call it
+        Commands::SetRoundReward(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            instructions::set_round_reward(
+                &program,
+                args.token_mint.as_str(),
+                args.created_at,
+                args.round_period_secs,
+                args.round_reward,
+            )?;
         }
         Commands::PoolState(args) => {
             let program = client.program(Pubkey::from_str(&args.program_id)?)?;

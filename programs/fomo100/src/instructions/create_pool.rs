@@ -36,6 +36,8 @@ pub fn handler(
     pool_state.claimed_reward = 0;
 
     pool_state.history_round_rewards = vec![round_reward];
+    //设置管理员
+    pool_state.admin = ctx.accounts.admin.key();
 
     msg!(
         "Initialize pool {}",

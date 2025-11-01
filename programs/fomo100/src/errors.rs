@@ -16,6 +16,11 @@ pub enum StakeError {
     HaveAlreadyFinished,
     #[msg("Have Already Unstaked")]
     HaveAlreadyUnstaked,
+    #[msg("Max Reward Records Exceeded")]
+    MaxRewardRecordsExceeded,
+    //权限不足
+    #[msg("Permission Denied")]
+    PermissionDenied,
     #[msg("Unknown")]
     Unknown,
 }
