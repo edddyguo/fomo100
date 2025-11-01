@@ -79,7 +79,7 @@ pub fn create_pool<T: TryInto<Pubkey>>(
         .map_err(|e| anyhow!("token_mint.try_into failed"))?;
     let payer_pubkey = program.payer();
 
-    let (pool_pda, _bump) = Pubkey::find_program_address(
+    let (pool_state_pda, _bump) = Pubkey::find_program_address(
         &[
             dojo_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
@@ -89,21 +89,33 @@ pub fn create_pool<T: TryInto<Pubkey>>(
         &program.id(),
     );
 
-    let pool_vault = get_associated_token_address(&pool_pda, &dojo_mint_pubkey);
+    let (pool_store_pda, _bump) = Pubkey::find_program_address(
+        &[
+            dojo_mint_pubkey.key().as_ref(),
+            created_at.to_be_bytes().as_ref(),
+            round_period_secs.to_be_bytes().as_ref(),
+            POOL_STORE_SEED.as_bytes(),
+        ],
+        &program.id(),
+    );
+
+    let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
 
     println!(
-        "\npayer_pubkey={}\n,pool_pda={},{},pool_vault={},dojo_mint_pubkey={}",
+        "\npayer_pubkey={}\n,pool_state_pda={},{},pool_vault={},pool_store_pda={},dojo_mint_pubkey={},",
         payer_pubkey,
-        pool_pda,
+        pool_state_pda,
         pool_vault,
         dojo_mint_pubkey,
+        pool_store_pda,
         SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
     );
     let init_res = program
         .request()
         .accounts(fomo100::accounts::CreatePool {
             admin: payer_pubkey,
-            pool_state: pool_pda.clone(),
+            pool_state: pool_state_pda.clone(),
+            pool_store: pool_store_pda.clone(),
             pool_vault: pool_vault,
             token_mint: dojo_mint_pubkey.clone(),
             associated_token_program: Pubkey::from_str(SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID)
@@ -120,7 +132,7 @@ pub fn create_pool<T: TryInto<Pubkey>>(
     println!("init settings {}", init_res.to_string());
     let collection_state = program.pool_state(&dojo_mint_pubkey, created_at, round_period_secs)?;
     println!("collection_state: {:?}", collection_state);
-    Ok(pool_pda)
+    Ok(pool_state_pda)
 }
 
 pub fn set_admin(
@@ -156,7 +168,7 @@ pub fn stake(
     let payer_pubkey = program.payer();
 
     //get pool pda
-    let (pool_pda, _bump) = Pubkey::find_program_address(
+    let (pool_state_pda, _bump) = Pubkey::find_program_address(
         &[
             dojo_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
@@ -165,24 +177,34 @@ pub fn stake(
         ],
         &program.id(),
     );
-    let pool_vault = get_associated_token_address(&pool_pda, &dojo_mint_pubkey);
+    let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
+    let (pool_store_pda, _bump) = Pubkey::find_program_address(
+        &[
+            dojo_mint_pubkey.key().as_ref(),
+            created_at.to_be_bytes().as_ref(),
+            round_period_secs.to_be_bytes().as_ref(),
+            POOL_STORE_SEED.as_bytes(),
+        ],
+        &program.id(),
+    );
     // 2) get user pda
     let (user_state_pda, _bump) = Pubkey::find_program_address(
         &[
             payer_pubkey.key().as_ref(),
-            pool_pda.key().as_ref(),
+            pool_state_pda.key().as_ref(),
             USER_STATE_SEED.as_bytes(),
         ],
         &program.id(),
     );
+
     let user_vault = get_associated_token_address(&payer_pubkey, &dojo_mint_pubkey);
 
     println!(
         "000____payer_pubkey={},
-        pool_pda={},pool_vault={},
+        pool_state_pda={},pool_vault={},
         dojo_mint_pubkey={},user_vault={}
         ",
-        payer_pubkey, pool_pda, pool_vault, dojo_mint_pubkey, user_vault
+        payer_pubkey, pool_state_pda, pool_vault, dojo_mint_pubkey, user_vault
     );
     let init_res = program
         .request()
@@ -193,7 +215,8 @@ pub fn stake(
         .accounts(fomo100::accounts::Stake {
             user: payer_pubkey,
             user_state: user_state_pda,
-            pool_state: pool_pda.clone(),
+            pool_state: pool_state_pda.clone(),
+            pool_store: pool_store_pda.clone(),
             user_vault,
             pool_vault: pool_vault,
             token_mint: dojo_mint_pubkey.clone(),

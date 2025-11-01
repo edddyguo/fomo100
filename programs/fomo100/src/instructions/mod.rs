@@ -11,3 +11,5 @@ pub mod expand_pool_state;
 pub mod stake;
 pub mod unlock;
 pub mod unstake;
+
+//todo: 管理员设置轮次奖励的时候不要超过256次

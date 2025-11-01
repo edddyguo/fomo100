@@ -47,6 +47,12 @@ pub trait State {
         created_at: i64,
         round_period_secs: u32,
     ) -> Result<PoolState>;
+    fn pool_store<T: Into<Pubkey> + Clone>(
+        &self,
+        token_mint: &T,
+        created_at: i64,
+        round_period_secs: u32,
+    ) -> Result<PoolStore>;
 }
 
 impl State for Program<Rc<Keypair>> {
@@ -104,6 +110,27 @@ impl State for Program<Rc<Keypair>> {
             &self.id(),
         );
         let collection_state = self.account::<PoolState>(pda)?;
+        println!("pool_state {:?}", collection_state);
+        Ok(collection_state)
+    }
+
+    fn pool_store<T: Into<Pubkey> + Clone>(
+        &self,
+        token_mint: &T,
+        created_at: i64,
+        round_period_secs: u32,
+    ) -> Result<PoolStore> {
+        let token_mint_pubkey: Pubkey = token_mint.clone().into();
+        let (pda, _bump) = Pubkey::find_program_address(
+            &[
+                token_mint_pubkey.key().as_ref(),
+                created_at.to_be_bytes().as_ref(),
+                round_period_secs.to_be_bytes().as_ref(),
+                POOL_STORE_SEED.as_bytes(),
+            ],
+            &self.id(),
+        );
+        let collection_state = self.account::<PoolStore>(pda)?;
         println!("pool_state {:?}", collection_state);
         Ok(collection_state)
     }

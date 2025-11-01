@@ -1,4 +1,4 @@
-use crate::{state::*, utils::RoundSnaps};
+use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -8,10 +8,18 @@ use spl_token::solana_program::sysvar::rewards;
 
 //创建指定开始时间的池子，设置轮次周期
 pub fn handler(ctx: Context<CreatePool>, created_at: i64, round_period_secs: u32) -> Result<()> {
-
     let pool_store = &mut ctx.accounts.pool_store.load_init()?;
-
-    **pool_store = PoolStore::new();
+    // pub struct PoolStore {
+    //     pub len: u32, // 当前有效长度
+    //     pub round_index: [u16; ROUND_MAX],
+    //     //最多更改256回的奖池资金
+    //     pub reward_index: [u8; ROUND_MAX],
+    //     pub stake_amount: [u32; ROUND_MAX],
+    // }
+    pool_store.len = 0;
+    pool_store.round_index = std::array::from_fn(|_| Default::default());
+    pool_store.reward_index = std::array::from_fn(|_| Default::default());
+    pool_store.stake_amount = std::array::from_fn(|_| Default::default());
 
     let pool_state = &mut ctx.accounts.pool_state;
 
@@ -28,6 +36,8 @@ pub fn handler(ctx: Context<CreatePool>, created_at: i64, round_period_secs: u32
     pool_state.unlocking_stake_amount = 0;
 
     pool_state.claimed_reward = 0;
+
+    pool_state.history_round_rewards = Vec::new();
 
     msg!(
         "Initialize pool {}",
@@ -52,9 +62,12 @@ pub struct CreatePool<'info> {
     )]
     pub pool_state: Account<'info, PoolState>,
     #[account(
-        zero,
+        //zero
+        init,
+        payer=admin,
         seeds=[token_mint.key().as_ref(),created_at.to_be_bytes().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STORE_SEED.as_bytes()], 
         bump,
+        space=8 + PoolStore::LEN
     )]
     pub pool_store: AccountLoader<'info, PoolStore>,
     #[account(

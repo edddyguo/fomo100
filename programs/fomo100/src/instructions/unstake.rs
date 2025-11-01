@@ -37,7 +37,8 @@ pub fn handler(ctx: Context<Unstake>,created_at:i64, round_period_secs: u32) -> 
     user_state.is_unstaked = true;
 
     //update pool state
-    pool_state.claimed_reward += staked_amount;
+    //todo:
+    //pool_state.claimed_reward += staked_amount;
 
 
     //step3: transfer stake amount

@@ -278,6 +278,7 @@ fn main() -> Result<()> {
             let program = client.program(Pubkey::from_str(&args.program_id)?)?;
             let token_mint: Pubkey = args.token_mint.as_str().try_into().ok().unwrap();
             program.pool_state(&token_mint, args.created_at, args.round_period_secs)?;
+            program.pool_store(&token_mint, args.created_at, args.round_period_secs)?;
         }
         Commands::SetPrice(args) => {
             todo!()

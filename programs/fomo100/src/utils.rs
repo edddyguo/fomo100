@@ -19,7 +19,7 @@ pub fn current_round_index(pool_init: i64) -> Result<i64> {
 //将质押的记录，展开为对应轮次的记录,
 //展开后用户轮次和pool轮次保持一致，
 //hack: to optimize, 没必要全部展开，可以在使用的时候加上，对应index没有的话，就使用上一个轮次的值，这个逻辑
-pub fn flatten_user_stake_snap(current_round_index: u32, user_stakes: &Vec<UserStake>) -> Vec<u64> {
+pub fn flatten_user_stake_snap(current_round_index: u16, user_stakes: &Vec<UserStake>) -> Vec<u64> {
     let mut stake_snaps = vec![];
     //如果用户没有质押，则历史值全为零
     let mut last_stake_amount = user_stakes.last().map(|x| x.stake_amount).unwrap_or(0);
@@ -103,13 +103,13 @@ pub fn calculate_total_reward(pool_rounds: &[Round], user_stakes: &Vec<UserStake
 
     for user_stake in user_stakes {
         // 顺序扫描直到找到对应 round_index
-        while i < pool_rounds.len() && pool_rounds[i].index < user_stake.round_index as u32 {
+        while i < pool_rounds.len() && pool_rounds[i].round_index < user_stake.round_index {
             i += 1;
         }
 
         // 找不到直接 panic（逻辑上不该发生）
         assert!(
-            i < pool_rounds.len() && pool_rounds[i].index == user_stake.round_index as u32,
+            i < pool_rounds.len() && pool_rounds[i].round_index == user_stake.round_index,
             "Pool round for index {} not found (user state corrupted)",
             user_stake.round_index
         );
@@ -118,11 +118,11 @@ pub fn calculate_total_reward(pool_rounds: &[Round], user_stakes: &Vec<UserStake
         if round.stake_amount == 0 {
             panic!(
                 "Pool round {} stake_amount == 0, invalid state",
-                round.index
+                round.round_index
             );
         }
 
-        let reward = (user_stake.stake_amount as u128) * (round.reward as u128)
+        let reward = (user_stake.stake_amount as u128) * (round.reward_index as u128)
             / (round.stake_amount as u128);
         total_reward += reward;
     }
@@ -131,8 +131,8 @@ pub fn calculate_total_reward(pool_rounds: &[Round], user_stakes: &Vec<UserStake
 }
 
 //向下取整
-pub fn get_current_round_index(init_at: i64, now: i64, period: u32) -> u32 {
-    ((now - init_at) / (period as i64)) as u32
+pub fn get_current_round_index(init_at: i64, now: i64, period: u32) -> u16 {
+    ((now - init_at) / (period as i64)) as u16
 }
 
 use bytemuck::{Pod, Zeroable};
@@ -145,83 +145,83 @@ use bytemuck::{Pod, Zeroable};
 //     pub data: [T; N],
 // }
 
-#[derive(Debug, Clone, Copy, Zeroable, Pod)]
-#[repr(C)] // 强制无填充
-pub struct RoundSnaps {
-    pub len: u32, // 当前有效长度
-    pub data: [Round; ROUND_MAX],
-}
+// #[derive(Debug, Clone, Copy, Zeroable, Pod)]
+// #[repr(C)] // 强制无填充
+// pub struct RoundSnaps {
+//     pub len: u32, // 当前有效长度
+//     pub data: [Round; ROUND_MAX],
+// }
 
-impl RoundSnaps {
-    pub fn new() -> Self {
-        Self {
-            data: std::array::from_fn(|_| Round::default()),
-            len: 0,
-        }
-    }
+// impl RoundSnaps {
+//     pub fn new() -> Self {
+//         Self {
+//             data: std::array::from_fn(|_| Round::default()),
+//             len: 0,
+//         }
+//     }
 
-    pub fn len(&self) -> usize {
-        self.len as usize
-    }
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
+//     pub fn len(&self) -> usize {
+//         self.len as usize
+//     }
+//     pub fn is_empty(&self) -> bool {
+//         self.len == 0
+//     }
 
-    /// 类似 Vec::push
-    pub fn push(&mut self, value: Round) -> Result<()> {
-        if self.len() < ROUND_MAX {
-            self.data[self.len()] = value;
-            self.len += 1;
-            Ok(())
-        } else {
-            Err(anchor_lang::error::ErrorCode::AccountDidNotSerialize.into())
-        }
-    }
+//     /// 类似 Vec::push
+//     pub fn push(&mut self, value: Round) -> Result<()> {
+//         if self.len() < ROUND_MAX {
+//             self.data[self.len()] = value;
+//             self.len += 1;
+//             Ok(())
+//         } else {
+//             Err(anchor_lang::error::ErrorCode::AccountDidNotSerialize.into())
+//         }
+//     }
 
-    /// 类似 Vec::last
-    pub fn last(&self) -> Option<&Round> {
-        if self.len == 0 {
-            None
-        } else {
-            Some(&self.data[self.len() - 1])
-        }
-    }
+//     /// 类似 Vec::last
+//     pub fn last(&self) -> Option<&Round> {
+//         if self.len == 0 {
+//             None
+//         } else {
+//             Some(&self.data[self.len() - 1])
+//         }
+//     }
 
-    /// 获取可变引用
-    pub fn last_mut(&mut self) -> Option<&mut Round> {
-        if self.len == 0 {
-            None
-        } else {
-            Some(&mut self.data[self.len() - 1])
-        }
-    }
+//     /// 获取可变引用
+//     pub fn last_mut(&mut self) -> Option<&mut Round> {
+//         if self.len == 0 {
+//             None
+//         } else {
+//             Some(&mut self.data[self.len() - 1])
+//         }
+//     }
 
-    /// 根据 index 获取元素
-    pub fn get(&self, index: usize) -> Option<&Round> {
-        if index < self.len() {
-            Some(&self.data[index])
-        } else {
-            None
-        }
-    }
+//     /// 根据 index 获取元素
+//     pub fn get(&self, index: usize) -> Option<&Round> {
+//         if index < self.len() {
+//             Some(&self.data[index])
+//         } else {
+//             None
+//         }
+//     }
 
-    /// 根据 index 获取可变元素
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Round> {
-        if index < self.len() {
-            Some(&mut self.data[index])
-        } else {
-            None
-        }
-    }
-}
+//     /// 根据 index 获取可变元素
+//     pub fn get_mut(&mut self, index: usize) -> Option<&mut Round> {
+//         if index < self.len() {
+//             Some(&mut self.data[index])
+//         } else {
+//             None
+//         }
+//     }
+// }
 
-impl Deref for RoundSnaps {
-    type Target = [Round];
+// impl Deref for RoundSnaps {
+//     type Target = [Round];
 
-    fn deref(&self) -> &Self::Target {
-        &self.data[..self.len()]
-    }
-}
+//     fn deref(&self) -> &Self::Target {
+//         &self.data[..self.len()]
+//     }
+// }
 
 pub trait AmountRaw {
     fn raw(self) -> u64;
