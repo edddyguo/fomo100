@@ -24,6 +24,12 @@ pub enum StakeError {
     //已经解锁
     #[msg("Already Unlocked")]
     AlreadyUnlocked,
+    //没有可领取奖励
+    #[msg("Reward is zero")]
+    RewardIsZero,
+    //没有可领取奖励
+    #[msg("Pool store is empty")]
+    PoolStoreIsEmpty,
     #[msg("Unknown")]
     Unknown,
 }

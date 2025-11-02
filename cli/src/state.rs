@@ -21,6 +21,8 @@ pub trait State {
     fn user_state<T: Into<Pubkey> + Clone>(
         &self,
         collection_mint: &T,
+        created_at: i64,
+        round_period_secs: u32,
         user_pubkey: &T,
     ) -> Result<UserState>;
     fn user_states<T: Into<Pubkey> + Clone>(
@@ -34,6 +36,7 @@ pub trait State {
         created_at: i64,
         round_period_secs: u32,
     ) -> Result<PoolState>;
+
     fn pool_store<T: Into<Pubkey> + Clone>(
         &self,
         token_mint: &T,
@@ -45,22 +48,34 @@ pub trait State {
 impl State for Program<Rc<Keypair>> {
     fn user_state<T: Into<Pubkey> + Clone>(
         &self,
-        collection_mint: &T,
+        token_mint: &T,
+        created_at: i64,
+        round_period_secs: u32,
         user_pubkey: &T,
     ) -> Result<UserState> {
-        // let user_pubkey: Pubkey = user_pubkey.clone().into();
-        // let collection_mint_pubkey: Pubkey = collection_mint.clone().into();
-        // let (pda, _bump) = Pubkey::find_program_address(
-        //     &[
-        //         USER_STATE_SEED.as_bytes(),
-        //         collection_mint_pubkey.as_ref(),
-        //         user_pubkey.as_ref(),
-        //     ],
-        //     &self.id(),
-        // );
-        // let user_state = self.account::<UserState>(pda)?;
-        // Ok(user_state)
-        todo!()
+        let token_mint: Pubkey = token_mint.clone().into();
+        let (pool_state_pda, _bump) = Pubkey::find_program_address(
+            &[
+                token_mint.key().as_ref(),
+                created_at.to_be_bytes().as_ref(),
+                round_period_secs.to_be_bytes().as_ref(),
+                POOL_STATE_SEED.as_bytes(),
+            ],
+            &self.id(),
+        );
+
+        let user_pubkey: Pubkey = user_pubkey.clone().into();
+        let (pda, _bump) = Pubkey::find_program_address(
+            &[
+                user_pubkey.key().as_ref(),
+                pool_state_pda.key().as_ref(),
+                USER_STATE_SEED.as_bytes(),
+            ],
+            &self.id(),
+        );
+        let collection_state = self.account::<UserState>(pda)?;
+        println!("pool_state {:?}", collection_state);
+        Ok(collection_state)
     }
     //todo: 一次性拿全部,通过get_program_accounts_with_config
     fn user_states<T: Into<Pubkey> + Clone>(

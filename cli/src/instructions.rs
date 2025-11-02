@@ -316,7 +316,7 @@ pub fn claim(
     let init_res = program
         .request()
         //max:
-        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(400_000))
+        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
         //max: 128KB
         .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
         .accounts(fomo100::accounts::Claim {

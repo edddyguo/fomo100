@@ -15,9 +15,9 @@ pub fn handler(
 ) -> Result<()> {
     let pool_store = &mut ctx.accounts.pool_store.load_init()?;
     pool_store.len = 0;
-    pool_store.round_index = std::array::from_fn(|_| Default::default());
-    pool_store.reward_index = std::array::from_fn(|_| Default::default());
-    pool_store.stake_amount = std::array::from_fn(|_| Default::default());
+    pool_store.round_indexes = std::array::from_fn(|_| Default::default());
+    pool_store.reward_indexes = std::array::from_fn(|_| Default::default());
+    pool_store.stake_amounts = std::array::from_fn(|_| Default::default());
 
     let pool_state = &mut ctx.accounts.pool_state;
 

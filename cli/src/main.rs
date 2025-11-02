@@ -103,17 +103,17 @@ pub struct ClaimArgs {
 }
 
 #[derive(Parser, Debug)]
-pub struct InitAirdropArgs {
+pub struct UserStateArgs {
     #[clap(long)]
-    pub minter_program_id: String,
+    pub program_id: String,
     #[clap(long)]
-    pub collection_name: String,
+    pub token_mint: String,
     #[clap(long)]
-    pub init_amount: u32,
+    pub created_at: i64,
     #[clap(long)]
-    pub init_sig: String,
+    pub round_period_secs: u32,
     #[clap(long)]
-    pub init_instruction_data: String,
+    pub user_pubkey: String,
 }
 
 #[derive(Parser, Debug)]
@@ -156,7 +156,7 @@ pub enum Commands {
     SetRoundReward(SetRoundRewardArgs),
     PoolState(PoolStateArgs),
     Claim(ClaimArgs),
-    InitAirdrop(InitAirdropArgs),
+    UserState(UserStateArgs),
     SignAirdrop(SignAirdropArgs),
     UpdateNftSigList(UpdateNftSigListArgs),
     CheckAndUpdateNftSigList(CheckAndUpdateNftSigListArgs),
@@ -293,8 +293,16 @@ fn main() -> Result<()> {
                 args.round_period_secs,
             )?;
         }
-        Commands::InitAirdrop(args) => {
-            todo!()
+        Commands::UserState(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            let token_mint: Pubkey = args.token_mint.as_str().try_into().ok().unwrap();
+            let user_pubkey: Pubkey = args.user_pubkey.as_str().try_into().ok().unwrap();
+            program.user_state(
+                &token_mint,
+                args.created_at,
+                args.round_period_secs,
+                &user_pubkey,
+            )?;
         }
         Commands::SignAirdrop(args) => {
             todo!()

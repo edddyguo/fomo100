@@ -3,7 +3,10 @@ use anchor_lang::prelude::*;
 use spl_token::solana_program::ed25519_program::ID as ED25519_ID;
 use spl_token::solana_program::instruction::Instruction;
 
-use crate::state::{PoolState, Round, UserStake, MAX_USER_STAKE_TIMES, ROUND_MAX, TOKEN_SCALE};
+use crate::state::{
+    PoolState, PoolStore, Round, UserStake, MAX_USER_STAKE_TIMES, ROUND_MAX, TOKEN_SCALE,
+};
+use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ops::{Deref, RangeBounds};
 
@@ -89,50 +92,98 @@ pub fn flatten_user_stake_snap(current_round_index: u16, user_stakes: &Vec<UserS
 // }
 
 //根据轮次历史快照和用户stake的历史记录，计算总的奖励金额
-pub fn calculate_total_reward(pool_rounds: &[Round], user_stakes: &Vec<UserStake>) -> Result<u64> {
+//todo; 如果要简化逻辑，可以做出，stake当天不允许用户claim
+pub fn calculate_total_reward(
+    current_round_index: u16,
+    pool_state: &PoolState,
+    pool_store: &PoolStore,
+    user_stakes: &Vec<UserStake>,
+) -> Result<u64> {
     // 至少要有2个轮次（最后一个未结束）
-    if pool_rounds.len() <= 1 || user_stakes.len() <= 1 {
+    if pool_store.is_empty() || user_stakes.is_empty() {
         return Ok(0);
     }
+    //获取用户有效轮次,处在当前自然轮次的用户，不计算奖励
+    let valid_user_stakes = if user_stakes.last().unwrap().round_index == current_round_index {
+        //用户首次质押的轮次，奖励也为0
+        if user_stakes.len() == 1 {
+            return Ok(0);
+        } else {
+            &user_stakes[..user_stakes.len() - 1]
+        }
+    } else {
+        user_stakes
+    };
+    //msg!("user_stakes {:?}", valid_user_stakes);
 
-    let pool_rounds = &pool_rounds[..pool_rounds.len() - 1];
-    let user_stakes = &user_stakes[..user_stakes.len() - 1];
-
-    let mut total_reward: u128 = 0;
-    let mut i = 0usize; // pool_rounds 指针
-
-    for user_stake in user_stakes {
-        // 顺序扫描直到找到对应 round_index
-        while i < pool_rounds.len() && pool_rounds[i].round_index < user_stake.round_index {
-            i += 1;
+    let user_stake_map: HashMap<u16, u64> = valid_user_stakes
+        .iter()
+        .map(|x| (x.round_index, x.stake_amount))
+        .collect();
+    //计算总收益
+    let mut total_reward: u64 = 0;
+    let mut last_user_stake_amount = 0u64;
+    let mut last_round_reward = 0u64;
+    //最多1096个循环
+    for (actual_index, natural_index) in pool_store.round_indexes().iter().enumerate() {
+        //首个快照不需要计算跳空值
+        if actual_index != 0 {
+            //计算跳空了多少个自然轮次,计算期间的奖励，奖励值继承原来的奖励额度
+            //msg!("round_index={:?}", pool_store.round_indexes);
+            // msg!(
+            //     "natural_index={},pool_store.round_index[actual_index - 1]={}",
+            //     natural_index,
+            //     pool_store.round_indexes[actual_index - 1]
+            // );
+            let round_skip_num = natural_index - pool_store.round_indexes[actual_index - 1];
+            //连续的轮次跳空奖励为0
+            total_reward += (round_skip_num - 1) as u64 * last_round_reward;
         }
 
-        // 找不到直接 panic（逻辑上不该发生）
-        assert!(
-            i < pool_rounds.len() && pool_rounds[i].round_index == user_stake.round_index,
-            "Pool round for index {} not found (user state corrupted)",
-            user_stake.round_index
+        //找到则使用用户对应轮次的质押值，并更新last_user_stake_amount,否则则使用上一轮次的值,
+        let current_stake_amount =
+            if let Some(user_stake_amount) = user_stake_map.get(natural_index) {
+                last_user_stake_amount = *user_stake_amount;
+                *user_stake_amount
+            } else {
+                last_user_stake_amount
+            };
+
+        //获取奖池金额下标
+        let reward_index = pool_store.reward_indexes[actual_index as usize];
+        //获取奖池金额
+        let pool_round_reward = pool_state.history_round_rewards[reward_index as usize];
+        let reward = calculate_user_reward(
+            pool_round_reward,
+            pool_store.stake_amounts[actual_index],
+            current_stake_amount,
         );
-
-        let round = &pool_rounds[i];
-        if round.stake_amount == 0 {
-            panic!(
-                "Pool round {} stake_amount == 0, invalid state",
-                round.round_index
-            );
-        }
-
-        let reward = (user_stake.stake_amount as u128) * (round.reward_index as u128)
-            / (round.stake_amount as u128);
+        //累加总奖励，更新last_round_reward值
         total_reward += reward;
+        last_round_reward = reward;
+    }
+    //最后一次快照到当前为止的剩余有效轮次，比如最后一次快照在自然轮次12，当前自然轮次为15，则剩下的有效奖励轮次为 2，即（第13和第14）
+    let last_round_index = pool_store.round_indexes().last().unwrap();
+    if current_round_index > *last_round_index {
+        let remainder_natural_index = current_round_index - last_round_index - 1;
+        total_reward += last_round_reward * remainder_natural_index as u64;
     }
 
-    Ok(total_reward as u64)
+    Ok(total_reward)
 }
 
 //向下取整
 pub fn get_current_round_index(init_at: i64, now: i64, period: u32) -> u16 {
     ((now - init_at) / (period as i64)) as u16
+}
+
+//获取用奖励值,（用户质押 / 奖池质押） * 奖池金额
+pub fn calculate_user_reward(
+    round_reward: u64,
+    round_stake_amount: u32,
+    user_stake_amount: u64,
+) -> u64 {
+    ((user_stake_amount as u128) * (round_reward as u128) / round_stake_amount.raw() as u128) as u64
 }
 
 use bytemuck::{Pod, Zeroable};

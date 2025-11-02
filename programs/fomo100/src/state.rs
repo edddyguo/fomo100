@@ -6,6 +6,7 @@ pub const TOKEN_SCALE: u32 = 1_000_000;
 //note：为了内存对齐，此值必须是4的倍数
 pub const ROUND_MAX: usize = 1096;
 //折衷的选择，允许用户累积100次天的快照，这是够用的，
+//超过150会在加载账号的时候报错内存溢出
 pub const MAX_USER_STAKE_TIMES: usize = 300;
 //最多设置100次奖励池子
 pub const MAX_REWARD_RECORDS: usize = 100;
@@ -83,10 +84,11 @@ impl PoolState {
 #[derive(Debug)]
 #[repr(C)]
 pub struct PoolStore {
-    pub reward_index: [u8; ROUND_MAX],
-    pub round_index: [u16; ROUND_MAX],
+    //剔除pub属性
+    pub reward_indexes: [u8; ROUND_MAX],
+    pub round_indexes: [u16; ROUND_MAX],
     //最多更改256回的奖池资金
-    pub stake_amount: [u32; ROUND_MAX],
+    pub stake_amounts: [u32; ROUND_MAX],
     pub len: u32, // 当前有效长度
 }
 
@@ -113,9 +115,9 @@ impl PoolStore {
     /// 类似 Vec::push
     pub fn push(&mut self, value: Round) -> Result<()> {
         if self.len() < ROUND_MAX {
-            self.reward_index[self.len()] = value.reward_index;
-            self.round_index[self.len()] = value.round_index;
-            self.stake_amount[self.len()] = value.stake_amount;
+            self.reward_indexes[self.len()] = value.reward_index;
+            self.round_indexes[self.len()] = value.round_index;
+            self.stake_amounts[self.len()] = value.stake_amount;
             self.len += 1;
             Ok(())
         } else {
@@ -129,9 +131,9 @@ impl PoolStore {
             None
         } else {
             Some(Round {
-                reward_index: self.reward_index[self.len as usize - 1],
-                stake_amount: self.stake_amount[self.len as usize - 1],
-                round_index: self.round_index[self.len as usize - 1],
+                reward_index: self.reward_indexes[self.len as usize - 1],
+                stake_amount: self.stake_amounts[self.len as usize - 1],
+                round_index: self.round_indexes[self.len as usize - 1],
             })
         }
     }
@@ -141,7 +143,7 @@ impl PoolStore {
         if self.len == 0 {
             None
         } else {
-            Some(&mut self.reward_index[self.len() - 1])
+            Some(&mut self.reward_indexes[self.len() - 1])
         }
     }
 
@@ -149,7 +151,7 @@ impl PoolStore {
         if self.len == 0 {
             None
         } else {
-            Some(&mut self.stake_amount[self.len() - 1])
+            Some(&mut self.stake_amounts[self.len() - 1])
         }
     }
 
@@ -157,9 +159,30 @@ impl PoolStore {
         if self.len == 0 {
             None
         } else {
-            Some(&mut self.round_index[self.len() - 1])
+            Some(&mut self.round_indexes[self.len() - 1])
         }
     }
+
+    //获取有效的轮次，即非零值
+    pub fn round_indexes(&self) -> &[u16] {
+        match self.round_indexes.iter().position(|x| *x == 0) {
+            Some(0) => &[],
+            Some(zero_position) => &self.round_indexes[0..zero_position],
+            None => &self.round_indexes,
+        }
+    }
+
+    //获取有效的轮次，即非零值
+    //根据round_index是否存在来判断插入或者更新
+    //更新时，对应index是
+    // pub fn insert_or_update(&self) -> &[u16] {
+    //     let zero_position = self.round_indexes.iter().position(|x| *x == 0).unwrap();
+    //     if zero_position == 0 {
+    //         &[]
+    //     } else {
+    //         &self.round_indexes[0..zero_position]
+    //     }
+    // }
 
     // /// 根据 index 获取元素
     // pub fn get(&self, index: usize) -> Option<&(u32, u32, u32)> {

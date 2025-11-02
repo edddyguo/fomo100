@@ -14,21 +14,31 @@ pub fn handler(ctx: Context<Claim>,
     round_period_secs: u32
 ) -> Result<()> {
     let pool_state = &mut ctx.accounts.pool_state;
-    let pool_store = & ctx.accounts.pool_store.load()?;
+    let pool_store = &mut ctx.accounts.pool_store.load_mut()?;
     let user_state = &mut ctx.accounts.user_state;
 
     let clock = Clock::get()?;
-    let current_round = get_current_round_index(pool_state.created_at,clock.unix_timestamp,pool_state.round_period_secs);
+    let current_round_index = get_current_round_index(pool_state.created_at,clock.unix_timestamp,pool_state.round_period_secs);
     //let user_stakes_snap =  flatten_user_stake_snap(current_round,&user_state.stakes);
     //已解锁的禁止再claim
     if user_state.unlock_at.is_some(){
         return Err(StakeError::AlreadyUnlocked)?;
     }
 
+    if pool_store.is_empty(){
+        return Err(StakeError::PoolStoreIsEmpty)?;
+    }
+
+    msg!("current_round = {}",current_round_index);
+    // msg!("user_state = {:?}",user_state);
+    // msg!("pool_state = {:?}",pool_state);
+    // msg!("pool_store = {:?}",pool_store);
+
     //当本轮次用户已经领取了，则归属奖励为0，则禁止再申领
-    let reward_amount = calculate_total_reward(current_round,&pool_state,&pool_store,&user_state.stakes)?;
+    let reward_amount = calculate_total_reward(current_round_index,&pool_state,&pool_store,&user_state.stakes)?;
+    msg!("reward_amount {}",reward_amount);
     if reward_amount == 0 {
-        return Err(StakeError::Unknown)?;
+        return Err(StakeError::RewardIsZero)?;
     }
     //update pool state
     pool_state.claimed_reward += reward_amount;
@@ -37,14 +47,26 @@ pub fn handler(ctx: Context<Claim>,
     //clear user's rounds before current round
     let newest_stake_amount = user_state.stakes.last().unwrap();
     let user_stake = UserStake {
-        round_index: current_round,
+        round_index: current_round_index,
         stake_amount: newest_stake_amount.stake_amount,
     };
     //重新从本轮次重新标记
     user_state.stakes = vec![user_stake];
     user_state.claimed_reward += reward_amount;
 
-    //进行奖励发放
+    //如果当前轮次还没有快照，需要冗余标记，以解决claim的所在轮次没有快照，计算不了的问题
+    let last_round = pool_store.last().unwrap();
+    msg!("last_round.round_index={} current_round_index={},",last_round.round_index , current_round_index);
+    if last_round.round_index < current_round_index && pool_store.len() < ROUND_MAX{
+        msg!("line! {}",line!());
+        pool_store.push(Round {
+            round_index: current_round_index,
+            reward_index: last_round.reward_index,
+            stake_amount: last_round.stake_amount,
+        })?;
+    }
+
+    //4) 进行奖励发放
     let round_period_secs_bytes = pool_state.round_period_secs.to_be_bytes();
     let created_at_bytes = pool_state.created_at.to_be_bytes();
 
@@ -86,7 +108,7 @@ pub struct Claim<'info> {
     pub user_state: Account<'info, UserState>,
     #[account(mut, seeds=[token_mint.key().as_ref(),created_at.to_be_bytes().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], bump)]
     pub pool_state: Account<'info, PoolState>,
-    //#[account(mut)]
+    #[account(mut)]
     pub pool_store: AccountLoader<'info, PoolStore>,
     #[account(
         mut,

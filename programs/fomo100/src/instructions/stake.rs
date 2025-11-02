@@ -59,7 +59,7 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
             stake_amount,
         })?;
     } else {
-        unreachable!("")
+        unreachable!("pool_store.last().unwrap().round_index {},current_round_index {}",pool_store.last().unwrap().round_index,current_round_index);
     }
 
     msg!("file {}, line: {}", file!(), line!());
