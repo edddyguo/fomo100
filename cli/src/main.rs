@@ -91,17 +91,15 @@ pub struct PoolStateArgs {
 }
 
 #[derive(Parser, Debug)]
-pub struct SetPriceArgs {
+pub struct ClaimArgs {
     #[clap(long)]
-    pub minter_program_id: String,
+    pub program_id: String,
     #[clap(long)]
-    pub collection_name: String,
+    pub token_mint: String,
     #[clap(long)]
-    pub sol_price: Option<u64>,
+    pub created_at: i64,
     #[clap(long)]
-    pub settle_token_price: Option<u64>,
-    #[clap(long)]
-    pub settle_token: Option<String>,
+    pub round_period_secs: u32,
 }
 
 #[derive(Parser, Debug)]
@@ -157,7 +155,7 @@ pub enum Commands {
     Stake(StakeArgs),
     SetRoundReward(SetRoundRewardArgs),
     PoolState(PoolStateArgs),
-    SetPrice(SetPriceArgs),
+    Claim(ClaimArgs),
     InitAirdrop(InitAirdropArgs),
     SignAirdrop(SignAirdropArgs),
     UpdateNftSigList(UpdateNftSigListArgs),
@@ -286,8 +284,14 @@ fn main() -> Result<()> {
             program.pool_state(&token_mint, args.created_at, args.round_period_secs)?;
             program.pool_store(&token_mint, args.created_at, args.round_period_secs)?;
         }
-        Commands::SetPrice(args) => {
-            todo!()
+        Commands::Claim(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            instructions::claim(
+                &program,
+                args.token_mint.as_str(),
+                args.created_at,
+                args.round_period_secs,
+            )?;
         }
         Commands::InitAirdrop(args) => {
             todo!()

@@ -21,6 +21,9 @@ pub enum StakeError {
     //权限不足
     #[msg("Permission Denied")]
     PermissionDenied,
+    //已经解锁
+    #[msg("Already Unlocked")]
+    AlreadyUnlocked,
     #[msg("Unknown")]
     Unknown,
 }

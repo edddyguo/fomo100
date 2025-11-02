@@ -110,7 +110,7 @@ solana address -k 1.json
 
 
 ## 创建池子
-../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://api.devnet.solana.com create-pool --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --created-at 1761822450 --round-period-secs 1 --round-reward 10000
+../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://api.devnet.solana.com create-pool --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --created-at 1761822451 --round-period-secs 1 --round-reward 10000
 
 //扩展池子空间
 //10年的量需要73000(3600*20)的byte，每次10k的申请消耗0.07个sol，这里time给个8次就行了
@@ -129,7 +129,10 @@ for ((i=0;i<=301;i++)); do date;../target/debug/anchor_cli --prikey 51SH5R65CUAN
 
 
 //查看pool_state
-../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://stylish-flashy-scion.solana-devnet.quiknode.pro/440b45854c57eb8ec133590d26123a835cc5a69f pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --created-at 1761822449 --round-period-secs 1
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --created-at 1761822452--round-period-secs 1
+
+//申领当前自然轮次之前的奖励
+ ../target/debug/anchor_cli --prikey cjYKTdLdnwT23ACZqNb5XX2eikQTRoh6R5es2pxSiTscTHqdNNHWguJBXQF83nuBhYLHsSEyoEXdSRQXjgw4GB8 --rpc-url https://api.devnet.solana.com claim --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --created-at 1761822450 --round-period-secs 1
 ```
 
 ## 流程 交互

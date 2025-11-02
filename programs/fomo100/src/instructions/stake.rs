@@ -108,7 +108,7 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
 
     let cpi_accounts = Transfer {
         from: ctx.accounts.user_ata.to_account_info(),
-        to: ctx.accounts.user_vault.to_account_info(),
+        to: ctx.accounts.user_stake_vault.to_account_info(),
         authority: ctx.accounts.user.to_account_info(),
     };
     msg!("file {}, line: {}", file!(), line!());
@@ -151,7 +151,7 @@ pub struct Stake<'info> {
         associated_token::mint = token_mint,
         associated_token::authority = user_state
     )]
-    pub user_vault: InterfaceAccount<'info, TokenAccount>,
+    pub user_stake_vault: InterfaceAccount<'info, TokenAccount>,
     /// 池子历史快照
     #[account(mut)]
     pub pool_store: AccountLoader<'info, PoolStore>,

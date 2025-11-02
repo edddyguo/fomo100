@@ -66,12 +66,11 @@ pub struct PoolState {
     pub admin: Pubkey,
     pub round_period_secs: u32,
     pub unlocking_stake_amount: u64,
-    //note: 此处不能超过256
     pub claimed_reward: u64,
     pub created_at: i64,
     //当前轮次奖金池,单位聪
     pub current_round_reward: u64,
-    //历史轮次奖金记录
+    //历史轮次奖金记录，最多100次
     pub history_round_rewards: Vec<u64>,
     pub unlocking_users: u32,
 }

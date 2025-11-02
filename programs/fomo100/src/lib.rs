@@ -15,8 +15,8 @@ declare_id!("33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ");
 pub mod fomo100 {
     use super::*;
 
-    pub fn claim(ctx: Context<Claim>) -> Result<()> {
-        instructions::claim::handler(ctx)
+    pub fn claim(ctx: Context<Claim>, created_at: i64, round_period_secs: u32) -> Result<()> {
+        instructions::claim::handler(ctx, created_at, round_period_secs)
     }
 
     pub fn create_pool(
