@@ -3,14 +3,17 @@ use anchor_lang::prelude::*;
 //单位聪
 pub const TOKEN_SCALE: u32 = 1_000_000;
 //3 Year
-//note：为了内存对齐，此值必须是4的倍数
+//note: 为了内存对齐，此值必须是4的倍数
 pub const ROUND_MAX: usize = 1096;
 //折衷的选择，允许用户累积100次天的快照，这是够用的，
-//超过150会在加载账号的时候报错内存溢出
+//note: 超过150会在加载账号的时候报错内存溢出
 pub const MAX_USER_STAKE_TIMES: usize = 300;
 //最多设置100次奖励池子
 pub const MAX_REWARD_RECORDS: usize = 100;
 pub const UNLOCK_DAYS: i64 = 30;
+//解锁周期30天
+//pub const UNLOCK_INTERVAL: i64 = 30 * 24 * 60 * 60;
+pub const UNLOCK_INTERVAL: i64 = 5 * 60;
 
 //todo:用户抵押的钱单独申请一个account，当前先放在pool_vault中
 pub const POOL_VAULT_SEED: &str = "pool_vault";

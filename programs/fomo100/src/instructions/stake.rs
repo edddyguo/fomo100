@@ -32,7 +32,7 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     //已解锁的禁止再质押
     //todo: 更多错误码
     if user_state.unlock_at.is_some() {
-        Err(StakeError::Unknown)?;
+        Err(StakeError::AlreadyUnlocked)?;
     }
     msg!("file {}, line: {}", file!(), line!());
 
@@ -108,7 +108,7 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
 
     let cpi_accounts = Transfer {
         from: ctx.accounts.user_ata.to_account_info(),
-        to: ctx.accounts.user_stake_vault.to_account_info(),
+        to: ctx.accounts.user_vault.to_account_info(),
         authority: ctx.accounts.user.to_account_info(),
     };
     msg!("file {}, line: {}", file!(), line!());
@@ -144,14 +144,14 @@ pub struct Stake<'info> {
         space = 8 + UserState::LEN
     )]
     pub user_state: Box<Account<'info, UserState>>,
-    /// 用户质押的ata
+    /// 用户在合约的财库
     #[account(
         init_if_needed,
         payer=user, 
         associated_token::mint = token_mint,
         associated_token::authority = user_state
     )]
-    pub user_stake_vault: InterfaceAccount<'info, TokenAccount>,
+    pub user_vault: InterfaceAccount<'info, TokenAccount>,
     /// 池子历史快照
     #[account(mut)]
     pub pool_store: AccountLoader<'info, PoolStore>,

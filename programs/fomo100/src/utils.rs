@@ -163,8 +163,14 @@ pub fn calculate_total_reward(
         last_round_reward = reward;
     }
     //最后一次快照到当前为止的剩余有效轮次，比如最后一次快照在自然轮次12，当前自然轮次为15，则剩下的有效奖励轮次为 2，即（第13和第14）
-    let last_round_index = pool_store.round_indexes().last().unwrap();
-    if current_round_index > *last_round_index {
+    let last_round_index = *pool_store.round_indexes().last().unwrap();
+    //如果超过最大轮次，一律按照最大轮次结算收益
+    let last_round_index = if last_round_index > ROUND_MAX as u16 {
+        ROUND_MAX as u16
+    } else {
+        last_round_index
+    };
+    if current_round_index > last_round_index {
         let remainder_natural_index = current_round_index - last_round_index - 1;
         total_reward += last_round_reward * remainder_natural_index as u64;
     }

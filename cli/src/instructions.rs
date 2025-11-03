@@ -233,7 +233,7 @@ pub fn stake(
         .accounts(fomo100::accounts::Stake {
             user: payer_pubkey,
             user_state: user_state_pda,
-            user_stake_vault: user_vault,
+            user_vault,
             pool_state: pool_state_pda.clone(),
             pool_store: pool_store_pda.clone(),
             user_ata,

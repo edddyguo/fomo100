@@ -13,24 +13,24 @@ pub fn handler(ctx: Context<Unstake>, created_at: i64, round_period_secs: u32) -
 
     let clock = Clock::get()?;
 
-    if user_state.is_unstaked {
-        Err(StakeError::Unknown)?;
-    }
-
     match user_state.unlock_at {
         Some(time) if clock.unix_timestamp > time => {
             msg!("start unstake");
         }
         Some(_) => {
             //未到解锁时间
-            Err(StakeError::Unknown)?;
+            Err(StakeError::UnlockTimeNotArrived)?;
         }
         None => {
             //尚未解锁
-            Err(StakeError::Unknown)?;
+            Err(StakeError::NotUnlock)?;
         }
     }
-    //todo:解除质押的尽量把用户的account也给回收掉，不刚需
+
+    if user_state.is_unstaked {
+        Err(StakeError::Unknown)?;
+    }
+    //todo:解除质押的尽量把用户的account也给回收掉，不刚需前端也许还有读状态
     let staked_amount = user_state
         .stakes
         .last()
@@ -45,22 +45,23 @@ pub fn handler(ctx: Context<Unstake>, created_at: i64, round_period_secs: u32) -
     //pool_state.claimed_reward += staked_amount;
 
     //step3: transfer stake amount
-    let token_mint_key = ctx.accounts.token_mint.key();
-    let round_period_secs_bytes = pool_state.round_period_secs.to_be_bytes();
-    let created_at_bytes = pool_state.created_at.to_be_bytes();
+    let user_key = ctx.accounts.user.key();
+    let pool_state_key =  pool_state.key();
+
+
+   // seeds=[user.key().as_ref(),pool_state.key().as_ref(), USER_STATE_SEED.as_bytes()], 
 
     let signer = &[
-        token_mint_key.as_ref(),
-        created_at_bytes.as_ref(),
-        round_period_secs_bytes.as_ref(),
-        POOL_STATE_SEED.as_bytes(),
-        &[ctx.bumps.pool_state],
+        user_key.as_ref(),
+        pool_state_key.as_ref(),
+        USER_STATE_SEED.as_bytes(),
+        &[ctx.bumps.user_state],
     ];
 
     let cpi_accounts = Transfer {
-        from: ctx.accounts.pool_vault.to_account_info(),
-        to: ctx.accounts.user_vault.to_account_info(),
-        authority: ctx.accounts.pool_state.to_account_info(),
+        from: ctx.accounts.user_vault.to_account_info(),
+        to: ctx.accounts.user_ata.to_account_info(),
+        authority: user_state.to_account_info(),
     };
 
     let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -82,12 +83,19 @@ pub struct Unstake<'info> {
     pub user_state: Account<'info, UserState>,
     #[account(mut, seeds=[token_mint.key().as_ref(),created_at.to_be_bytes().as_ref(),round_period_secs.to_be_bytes().as_ref(),POOL_STATE_SEED.as_bytes()], bump)]
     pub pool_state: Account<'info, PoolState>,
+    /// 用户质押的ata
+    #[account(
+        mut,
+        associated_token::mint = token_mint,
+        associated_token::authority = user_state
+    )]
+    pub user_vault: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut,
         associated_token::mint = token_mint,
         associated_token::authority = user
     )]
-    pub user_vault: InterfaceAccount<'info, TokenAccount>,
+    pub user_ata: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut, 
         associated_token::mint = token_mint,

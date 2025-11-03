@@ -30,6 +30,12 @@ pub enum StakeError {
     //没有可领取奖励
     #[msg("Pool store is empty")]
     PoolStoreIsEmpty,
+    //还未到解锁时间
+    #[msg("UnlockTimeNotArrived")]
+    UnlockTimeNotArrived,
+    //还未解锁
+    #[msg("NotUnlock")]
+    NotUnlock,
     #[msg("Unknown")]
     Unknown,
 }
