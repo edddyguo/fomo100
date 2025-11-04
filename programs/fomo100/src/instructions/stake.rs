@@ -43,29 +43,32 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     msg!("file {}, line: {}", file!(), line!());
 
     //整个池子的首次stake
-    let current_reward_index = pool_state.history_round_rewards.len() as u8 - 1;
+    //let current_reward_index = pool_state.history_round_rewards.len() as u8 - 1;
 
     if pool_store.is_empty() {
         //reward 直接继承
         pool_store.push(Round {
             round_index: current_round_index,
-            reward_index: current_reward_index,
+            reward_index: pool_state.history_round_rewards.len() as u8  - 1,
             stake_amount: amount.view(),
         })?;
     //如果history_rounds的最后一个值等于current_round_index则说明，d当前轮次已经创建，直接更新即可
-    } else if pool_store.last().unwrap().round_index == current_round_index {
-        *pool_store.last_stake_amount_mut().unwrap() += amount.view();
-    //如果history_rounds的最后一个值不等于current_round_index则说明，当前为这个轮次的第一个stake
-    } else if pool_store.last().unwrap().round_index < current_round_index {
-        //本地快照初始化继承上一轮的stake_amount值基础上增加当前用户质押数量
-        let stake_amount = pool_store.last().unwrap().stake_amount + amount.view();
-        pool_store.push(Round {
-            round_index: current_round_index,
-            reward_index: current_reward_index,
-            stake_amount,
-        })?;
     } else {
-        unreachable!("pool_store.last().unwrap().round_index {},current_round_index {}",pool_store.last().unwrap().round_index,current_round_index);
+        let last_round = pool_store.last().expect("must have a item");
+        if last_round.round_index == current_round_index {
+            *pool_store.last_stake_amount_mut().unwrap() += amount.view();
+        //如果history_rounds的最后一个值不等于current_round_index则说明，当前为这个轮次的第一个stake
+        } else if last_round.round_index < current_round_index {
+            //本地快照初始化继承上一轮的stake_amount值基础上增加当前用户质押数量
+            let stake_amount = last_round.stake_amount + amount.view();
+            pool_store.push(Round {
+                round_index: current_round_index,
+                reward_index: last_round.reward_index,
+                stake_amount,
+            })?;
+        } else {
+            unreachable!("pool_store.last().unwrap().round_index {},current_round_index {}",pool_store.last().unwrap().round_index,current_round_index);
+        }
     }
 
     msg!("file {}, line: {}", file!(), line!());

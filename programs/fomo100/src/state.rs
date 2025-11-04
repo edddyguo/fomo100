@@ -89,9 +89,10 @@ impl PoolState {
 #[repr(C)]
 pub struct PoolStore {
     //剔除pub属性
+    //最多更改256回的奖池资金
     pub reward_indexes: [u8; ROUND_MAX],
     pub round_indexes: [u16; ROUND_MAX],
-    //最多更改256回的奖池资金
+    //为了节省空间此处仅存整数部分
     pub stake_amounts: [u32; ROUND_MAX],
     pub len: u32, // 当前有效长度
 }
@@ -178,17 +179,25 @@ impl PoolStore {
     }
 
     //更新最新stake_amount值
-    pub fn update_stake_amount(&mut self, current_round_index: u16, stake_amount: u32) {
-        let last_round = self.last().unwrap();
+    pub fn create_or_update_snap(
+        &mut self,
+        round_index: u16,
+        reward_index: Option<u8>,
+        stake_amount: Option<u32>,
+    ) {
+        let last_round = self.last().expect("must have a item");
+        let reward_index = reward_index.unwrap_or(last_round.reward_index);
+        let stake_amount = stake_amount.unwrap_or(last_round.stake_amount);
         //当前轮次无快照，且小于轮次上线，则创建新快照，否则仅更新
-        if last_round.round_index < current_round_index && self.len() < ROUND_MAX {
+        if last_round.round_index < round_index && self.len() < ROUND_MAX {
             self.push(Round {
-                round_index: current_round_index,
-                reward_index: last_round.reward_index,
-                stake_amount: stake_amount,
+                round_index,
+                reward_index,
+                stake_amount,
             })
             .expect("should be ok ");
         } else {
+            *self.last_reward_index_mut().unwrap() = reward_index;
             *self.last_stake_amount_mut().unwrap() = stake_amount;
         }
     }

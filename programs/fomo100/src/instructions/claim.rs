@@ -57,9 +57,7 @@ pub fn handler(ctx: Context<Claim>,
     user_state.claimed_reward += reward_amount;
 
     //如果当前轮次还没有快照，需要冗余标记，以解决claim的所在轮次没有快照，计算不了的问题
-    let last_round = pool_store.last().unwrap();
-    msg!("last_round.round_index={} current_round_index={},",last_round.round_index , current_round_index);
-    pool_store.update_stake_amount(current_round_index, last_round.stake_amount);
+    pool_store.create_or_update_snap(current_round_index, None,None);
 
     //4) 进行奖励发放
     let round_period_secs_bytes = pool_state.round_period_secs.to_be_bytes();

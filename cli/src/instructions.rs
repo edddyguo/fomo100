@@ -144,11 +144,22 @@ pub fn set_round_reward<T: TryInto<Pubkey>>(
         &program.id(),
     );
 
+    let (pool_store_pda, _bump) = Pubkey::find_program_address(
+        &[
+            dojo_mint_pubkey.key().as_ref(),
+            created_at.to_be_bytes().as_ref(),
+            round_period_secs.to_be_bytes().as_ref(),
+            POOL_STORE_SEED.as_bytes(),
+        ],
+        &program.id(),
+    );
+
     let res = program
         .request()
         .accounts(fomo100::accounts::SetRoundReward {
             admin: payer_pubkey,
             pool_state: pool_state_pda.clone(),
+            pool_store: pool_store_pda.clone(),
             system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
         })
         .args(fomo100::instruction::SetRoundReward { round_reward })
