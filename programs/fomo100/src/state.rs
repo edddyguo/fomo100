@@ -168,8 +168,9 @@ impl PoolStore {
     }
 
     //获取有效的轮次，即非零值
+    //todo: 第零轮有人玩的话也是有值且为零
     pub fn round_indexes(&self) -> &[u16] {
-        match self.round_indexes.iter().position(|x| *x == 0) {
+        match self.round_indexes.iter().position(|x| *x == u16::MAX) {
             Some(0) => &[],
             Some(zero_position) => &self.round_indexes[0..zero_position],
             None => &self.round_indexes,

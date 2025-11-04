@@ -1,3 +1,5 @@
+use std::u16;
+
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -15,7 +17,8 @@ pub fn handler(
 ) -> Result<()> {
     let pool_store = &mut ctx.accounts.pool_store.load_init()?;
     pool_store.len = 0;
-    pool_store.round_indexes = std::array::from_fn(|_| Default::default());
+    //默认值为u16::Max规避0轮次问题
+    pool_store.round_indexes = std::array::from_fn(|_| u16::MAX);
     pool_store.reward_indexes = std::array::from_fn(|_| Default::default());
     pool_store.stake_amounts = std::array::from_fn(|_| Default::default());
 

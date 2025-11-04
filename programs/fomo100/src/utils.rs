@@ -128,13 +128,6 @@ pub fn calculate_total_reward(
     for (actual_index, natural_index) in pool_store.round_indexes().iter().enumerate() {
         //首个快照不需要计算跳空值
         if actual_index != 0 {
-            //计算跳空了多少个自然轮次,计算期间的奖励，奖励值继承原来的奖励额度
-            //msg!("round_index={:?}", pool_store.round_indexes);
-            // msg!(
-            //     "natural_index={},pool_store.round_index[actual_index - 1]={}",
-            //     natural_index,
-            //     pool_store.round_indexes[actual_index - 1]
-            // );
             let round_skip_num = natural_index - pool_store.round_indexes[actual_index - 1];
             //连续的轮次跳空奖励为0
             total_reward += (round_skip_num - 1) as u64 * last_round_reward;

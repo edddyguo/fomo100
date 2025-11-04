@@ -74,7 +74,7 @@ impl State for Program<Rc<Keypair>> {
             &self.id(),
         );
         let collection_state = self.account::<UserState>(pda)?;
-        println!("pool_state {:?}", collection_state);
+        println!("pool_state {:#?}", collection_state);
         Ok(collection_state)
     }
     //todo: 一次性拿全部,通过get_program_accounts_with_config
@@ -112,7 +112,7 @@ impl State for Program<Rc<Keypair>> {
             &self.id(),
         );
         let collection_state = self.account::<PoolState>(pda)?;
-        println!("pool_state {:?}", collection_state);
+        println!("pool_state {:#?}", collection_state);
         Ok(collection_state)
     }
 

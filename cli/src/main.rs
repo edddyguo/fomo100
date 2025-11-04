@@ -6,12 +6,14 @@ pub mod state;
 pub mod utils;
 
 use crate::state::State;
+use crate::utils::current_timestamp;
 use anchor_client::anchor_lang::prelude::Pubkey;
 use anchor_client::solana_sdk::commitment_config::CommitmentConfig;
 use anchor_client::{Client, Cluster};
 use anyhow::Result;
 use clap::Parser;
 use clap::Subcommand;
+use fomo100::utils::get_current_round_index;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signer::Signer;
 use std::rc::Rc;
@@ -281,6 +283,10 @@ fn main() -> Result<()> {
             )?;
         }
         Commands::PoolState(args) => {
+            let now = current_timestamp();
+            let current_round_index =
+                get_current_round_index(args.created_at, now, args.round_period_secs);
+            println!("current_rund_index: {}", current_round_index);
             let program = client.program(Pubkey::from_str(&args.program_id)?)?;
             let token_mint: Pubkey = args.token_mint.as_str().try_into().ok().unwrap();
             program.pool_state(&token_mint, args.created_at, args.round_period_secs)?;
@@ -296,6 +302,10 @@ fn main() -> Result<()> {
             )?;
         }
         Commands::UserState(args) => {
+            let now = current_timestamp();
+            let current_round_index =
+                get_current_round_index(args.created_at, now, args.round_period_secs);
+            println!("current_rund_index: {}", current_round_index);
             let program = client.program(Pubkey::from_str(&args.program_id)?)?;
             let token_mint: Pubkey = args.token_mint.as_str().try_into().ok().unwrap();
             let user_pubkey: Pubkey = args.user_pubkey.as_str().try_into().ok().unwrap();
@@ -317,6 +327,10 @@ fn main() -> Result<()> {
         }
 
         Commands::Unstake(args) => {
+            let now = current_timestamp();
+            let current_round_index =
+                get_current_round_index(args.created_at, now, args.round_period_secs);
+            println!("current_rund_index: {}", current_round_index);
             let program = client.program(Pubkey::from_str(&args.program_id)?)?;
             instructions::unstake(
                 &program,
