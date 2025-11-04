@@ -8,10 +8,10 @@ use anchor_spl::token::{self, Transfer};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
-    // msg!("file {}, line: {}", file!(), line!());
-    // if amount < TOKEN_SCALE as u64 || amount % (TOKEN_SCALE as u64) != 0 {
-    //     Err(StakeError::StakeAmountInvalid)?;
-    // }
+    msg!("file {}, line: {}", file!(), line!());
+    if amount < TOKEN_SCALE as u64 || amount % (TOKEN_SCALE as u64) != 0 {
+        Err(StakeError::StakeAmountInvalid)?;
+    }
 
     let pool_state = &mut ctx.accounts.pool_state;
     let pool_store = &mut ctx.accounts.pool_store.load_mut()?;
@@ -27,6 +27,10 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
 
     if user_state.unlock_at.is_some(){
         Err( StakeError::AlreadyUnlocked)?;
+    }
+
+    if user_state.stakes.len() > MAX_USER_STAKE_TIMES{
+        Err( StakeError::BeyondStakeLimit)?;
     }
 
     let clock = Clock::get()?;

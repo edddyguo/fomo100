@@ -45,6 +45,9 @@ pub enum StakeError {
     //用户质押为空
     #[msg("AlreadyUnstake")]
     AlreadyUnstake,
+    //用户质押为空
+    #[msg("BeyondStakeLimit")]
+    BeyondStakeLimit,
     #[msg("Unknown")]
     Unknown,
 }

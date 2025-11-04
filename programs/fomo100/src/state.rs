@@ -7,7 +7,7 @@ pub const TOKEN_SCALE: u32 = 1_000_000;
 pub const ROUND_MAX: usize = 1096;
 //折衷的选择，允许用户累积100次天的快照，这是够用的，
 //note: 超过150会在加载账号的时候报错内存溢出
-pub const MAX_USER_STAKE_TIMES: usize = 300;
+pub const MAX_USER_STAKE_TIMES: usize = 150;
 //最多设置100次奖励池子
 pub const MAX_REWARD_RECORDS: usize = 100;
 //解锁周期30天

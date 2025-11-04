@@ -129,13 +129,15 @@ pub struct UnlockArgs {
 }
 
 #[derive(Parser, Debug)]
-pub struct UpdateNftSigListArgs {
+pub struct UnstakeArgs {
     #[clap(long)]
-    pub minter_program_id: String,
+    pub program_id: String,
     #[clap(long)]
-    pub core_collection_name: String,
+    pub token_mint: String,
     #[clap(long)]
-    pub elite_collection_name: String,
+    pub created_at: i64,
+    #[clap(long)]
+    pub round_period_secs: u32,
 }
 
 #[derive(Parser, Debug)]
@@ -158,7 +160,7 @@ pub enum Commands {
     Claim(ClaimArgs),
     UserState(UserStateArgs),
     Unlock(UnlockArgs),
-    UpdateNftSigList(UpdateNftSigListArgs),
+    Unstake(UnstakeArgs),
     CheckAndUpdateNftSigList(CheckAndUpdateNftSigListArgs),
 }
 
@@ -305,11 +307,23 @@ fn main() -> Result<()> {
             )?;
         }
         Commands::Unlock(args) => {
-            todo!()
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            instructions::unlock(
+                &program,
+                args.token_mint.as_str(),
+                args.created_at,
+                args.round_period_secs,
+            )?;
         }
 
-        Commands::UpdateNftSigList(args) => {
-            todo!()
+        Commands::Unstake(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            instructions::unstake(
+                &program,
+                args.token_mint.as_str(),
+                args.created_at,
+                args.round_period_secs,
+            )?;
         }
         Commands::CheckAndUpdateNftSigList(args) => {
             todo!()

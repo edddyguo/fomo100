@@ -80,13 +80,12 @@ pub fn create_pool<T: TryInto<Pubkey>>(
     let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
 
     println!(
-        "\npayer_pubkey={}\n,pool_state_pda={},{},pool_vault={},pool_store_pda={},dojo_mint_pubkey={},",
-        payer_pubkey,
-        pool_state_pda,
-        pool_vault,
-        dojo_mint_pubkey,
-        pool_store_pda,
-        SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
+        "\npayer_pubkey={}\n,
+        pool_state_pda={},
+        pool_vault={},
+        pool_store_pda={},
+        dojo_mint_pubkey={},",
+        payer_pubkey, pool_state_pda, pool_vault, pool_store_pda, dojo_mint_pubkey,
     );
     let init_res = program
         .request()
@@ -405,7 +404,7 @@ pub fn unlock(
     let init_res = program
         .request()
         //max:
-        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(400_000))
+        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
         //max: 128KB
         .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
         .accounts(fomo100::accounts::Unlock {
@@ -494,7 +493,7 @@ pub fn unstake(
     let init_res = program
         .request()
         //max:
-        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(400_000))
+        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
         //max: 128KB
         .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
         .accounts(fomo100::accounts::Unstake {
