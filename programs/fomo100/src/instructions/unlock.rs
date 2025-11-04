@@ -47,13 +47,6 @@ pub fn handler(ctx: Context<Unlock>, created_at: i64, round_period_secs: u32) ->
     };
     user_state.unlock_at = Some(unlock_at);
 
-    //3) update pool store,扣减总质押金额
-    let last_round = pool_store.last().unwrap();
-    msg!("last_round.round_index={} current_round_index={},",last_round.round_index , current_round_index);
-    let current_stake_amount = last_round.stake_amount -  user_stake_amount.view();
-    pool_store.create_or_update_snap(current_round_index,None,Some(current_stake_amount));
-
-
     //4) 如果有剩余的奖励尚未claim，则发给用户之前轮次的奖励，当前轮次的作废
     let reward_amount = calculate_total_reward(current_round_index,&pool_state,&pool_store,&user_state.stakes)?;
     if reward_amount != 0 {
@@ -86,6 +79,13 @@ pub fn handler(ctx: Context<Unlock>, created_at: i64, round_period_secs: u32) ->
             reward_amount
         );
     }
+
+    //5) update pool store,扣减总质押金额
+    let last_round = pool_store.last().unwrap();
+     msg!("last_round.round_index={} current_round_index={},",last_round.round_index , current_round_index);
+    let current_stake_amount = last_round.stake_amount -  user_stake_amount.view();
+    pool_store.create_or_update_snap(current_round_index,None,Some(current_stake_amount));
+    
     Ok(())
 }
 

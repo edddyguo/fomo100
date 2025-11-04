@@ -124,6 +124,9 @@ pub fn calculate_total_reward(
     let mut total_reward: u64 = 0;
     let mut last_user_stake_amount = 0u64;
     let mut last_round_reward = 0u64;
+
+    // msg!("round_indexesA = {:?}", &pool_store.round_indexes[0..10]);
+    // msg!("round_indexesB = {:?}", pool_store.round_indexes());
     //最多1096个循环
     for (actual_index, natural_index) in pool_store.round_indexes().iter().enumerate() {
         //首个快照不需要计算跳空值
@@ -139,13 +142,27 @@ pub fn calculate_total_reward(
                 last_user_stake_amount = *user_stake_amount;
                 *user_stake_amount
             } else {
-                last_user_stake_amount
+                //如果找不到抵押记录、且前值为零说明是之前的轮次用户没有曾参与
+                if last_user_stake_amount == 0 {
+                    continue;
+                } else {
+                    last_user_stake_amount
+                }
             };
 
         //获取奖池金额下标
         let reward_index = pool_store.reward_indexes[actual_index as usize];
         //获取奖池金额
         let pool_round_reward = pool_state.history_round_rewards[reward_index as usize];
+        // msg!(
+        //     "pool_round_reward={},pool_store.stake_amounts={:?},
+        //     current_stake_amount={},actual_index={},natural_index={}",
+        //     pool_round_reward,
+        //     &pool_store.stake_amounts[0..=(actual_index + 5)],
+        //     current_stake_amount,
+        //     actual_index,
+        //     natural_index
+        // );
         let reward = calculate_user_reward(
             pool_round_reward,
             pool_store.stake_amounts[actual_index],
@@ -164,8 +181,8 @@ pub fn calculate_total_reward(
         last_round_index
     };
     if current_round_index > last_round_index {
-        let remainder_natural_index = current_round_index - last_round_index - 1;
-        total_reward += last_round_reward * remainder_natural_index as u64;
+        let remainder_natural_num = current_round_index - last_round_index - 1;
+        total_reward += last_round_reward * remainder_natural_num as u64;
     }
 
     Ok(total_reward)
