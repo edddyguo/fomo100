@@ -1,41 +1,60 @@
 use crate::{
     errors::*,
     state::*,
-    utils::{calculate_total_reward, get_current_round_index, DAY1},
+    utils::{AmountView, calculate_total_reward, get_current_round_index},
 };
 use anchor_lang::prelude::*;
 use anchor_spl::{
-    associated_token::AssociatedToken,
     token::{self, Transfer},
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
 pub fn handler(ctx: Context<Unlock>, created_at: i64, round_period_secs: u32) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
-    let pool_store = &mut ctx.accounts.pool_store.load_init()?;
+    let pool_store = &mut ctx.accounts.pool_store.load_mut()?;
     let pool_state = &mut ctx.accounts.pool_state;
 
     let clock = Clock::get()?;
-    //如果已解锁，报错，禁止重复解锁
-    if user_state.unlock_at.is_some(){
-        Err( StakeError::AlreadyUnlocked)?;
-    }
-
     let current_round_index = get_current_round_index(
         pool_state.created_at,
         clock.unix_timestamp,
         pool_state.round_period_secs,
     );
 
-    //update pool state
+    //如果已解锁，报错，禁止重复解锁
+    if user_state.unlock_at.is_some(){
+        Err( StakeError::AlreadyUnlocked)?;
+    }
+
+    //禁止在质押的轮次进行解锁
+    //todo,也可以允许，只是质押轮次的奖励给零了
+   let Some(user_last_stake) =  user_state.stakes.last() else {
+      return Err( StakeError::StakeIsEmpty.into());
+   };
+   let user_stake_amount = user_last_stake.stake_amount;
+
+
+    // 1） update pool state
     pool_state.unlocking_users += 1;
-    pool_state.unlocking_stake_amount += user_state.stakes.last().expect("when unlock,user must have already stake").stake_amount;
-    //update user state
-    user_state.unlock_at = Some(clock.unix_timestamp + UNLOCK_DAYS * DAY1);
+    pool_state.unlocking_stake_amount += user_stake_amount;
+
+    //2） update user state
+    //项目结束后，用户无需30天的等待期
+    let unlock_at  = if pool_store.len() >= ROUND_MAX {
+        clock.unix_timestamp
+    }else {
+        clock.unix_timestamp + UNLOCK_INTERVAL
+    };
+    user_state.unlock_at = Some(unlock_at);
+
+    //3) update pool store,扣减总质押金额
+    let last_round = pool_store.last().unwrap();
+    msg!("last_round.round_index={} current_round_index={},",last_round.round_index , current_round_index);
+    let current_stake_amount = last_round.stake_amount -  user_stake_amount.view();
+    pool_store.update_stake_amount(current_round_index,current_stake_amount);
 
 
-
-    //step3: 如果有剩余的奖励尚未claim，则发给用户之前轮次的奖励，当前轮次的作废
+    //4) 如果有剩余的奖励尚未claim，则发给用户之前轮次的奖励，当前轮次的作废
     let reward_amount = calculate_total_reward(current_round_index,&pool_state,&pool_store,&user_state.stakes)?;
     if reward_amount != 0 {
         let round_period_secs_bytes = pool_state.round_period_secs.to_be_bytes();
@@ -52,7 +71,7 @@ pub fn handler(ctx: Context<Unlock>, created_at: i64, round_period_secs: u32) ->
 
         let cpi_accounts = Transfer {
             from: ctx.accounts.pool_vault.to_account_info(),
-            to: ctx.accounts.user_vault.to_account_info(),
+            to: ctx.accounts.user_ata.to_account_info(),
             authority: ctx.accounts.pool_state.to_account_info(),
         };
 
@@ -86,7 +105,7 @@ pub struct Unlock<'info> {
         associated_token::mint = token_mint,
         associated_token::authority = user
     )]
-    pub user_vault: InterfaceAccount<'info, TokenAccount>,
+    pub user_ata: InterfaceAccount<'info, TokenAccount>,
     #[account(
         mut, 
         associated_token::mint = token_mint,

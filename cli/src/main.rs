@@ -117,15 +117,15 @@ pub struct UserStateArgs {
 }
 
 #[derive(Parser, Debug)]
-pub struct SignAirdropArgs {
+pub struct UnlockArgs {
     #[clap(long)]
-    pub minter_program_id: String,
+    pub program_id: String,
     #[clap(long)]
-    pub collection_name: String,
+    pub token_mint: String,
     #[clap(long)]
-    pub pubkey: String,
+    pub created_at: i64,
     #[clap(long)]
-    pub amount: u32,
+    pub round_period_secs: u32,
 }
 
 #[derive(Parser, Debug)]
@@ -157,7 +157,7 @@ pub enum Commands {
     PoolState(PoolStateArgs),
     Claim(ClaimArgs),
     UserState(UserStateArgs),
-    SignAirdrop(SignAirdropArgs),
+    Unlock(UnlockArgs),
     UpdateNftSigList(UpdateNftSigListArgs),
     CheckAndUpdateNftSigList(CheckAndUpdateNftSigListArgs),
 }
@@ -304,7 +304,7 @@ fn main() -> Result<()> {
                 &user_pubkey,
             )?;
         }
-        Commands::SignAirdrop(args) => {
+        Commands::Unlock(args) => {
             todo!()
         }
 

@@ -36,6 +36,15 @@ pub enum StakeError {
     //还未解锁
     #[msg("NotUnlock")]
     NotUnlock,
+    //用户质押为空
+    #[msg("StakeIsEmpty")]
+    StakeIsEmpty,
+    //用户质押为空
+    #[msg("PoolIsFinished")]
+    PoolIsFinished,
+    //用户质押为空
+    #[msg("AlreadyUnstake")]
+    AlreadyUnstake,
     #[msg("Unknown")]
     Unknown,
 }

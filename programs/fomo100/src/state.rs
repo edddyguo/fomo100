@@ -10,7 +10,6 @@ pub const ROUND_MAX: usize = 1096;
 pub const MAX_USER_STAKE_TIMES: usize = 300;
 //最多设置100次奖励池子
 pub const MAX_REWARD_RECORDS: usize = 100;
-pub const UNLOCK_DAYS: i64 = 30;
 //解锁周期30天
 //pub const UNLOCK_INTERVAL: i64 = 30 * 24 * 60 * 60;
 pub const UNLOCK_INTERVAL: i64 = 5 * 60;
@@ -53,6 +52,8 @@ impl UserState {
 //     pub stake_amount: u64,
 // }
 use bytemuck::{Pod, Zeroable};
+
+use crate::{errors::StakeError, utils::get_current_round_index};
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Round {
     //轮次奖励，单位个
@@ -122,10 +123,10 @@ impl PoolStore {
             self.round_indexes[self.len()] = value.round_index;
             self.stake_amounts[self.len()] = value.stake_amount;
             self.len += 1;
-            Ok(())
         } else {
-            Err(anchor_lang::error::ErrorCode::AccountDidNotSerialize.into())
+            Err(StakeError::PoolIsFinished)?;
         }
+        Ok(())
     }
 
     /// 类似 Vec::last
@@ -175,17 +176,21 @@ impl PoolStore {
         }
     }
 
-    //获取有效的轮次，即非零值
-    //根据round_index是否存在来判断插入或者更新
-    //更新时，对应index是
-    // pub fn insert_or_update(&self) -> &[u16] {
-    //     let zero_position = self.round_indexes.iter().position(|x| *x == 0).unwrap();
-    //     if zero_position == 0 {
-    //         &[]
-    //     } else {
-    //         &self.round_indexes[0..zero_position]
-    //     }
-    // }
+    //更新最新stake_amount值
+    pub fn update_stake_amount(&mut self, current_round_index: u16, stake_amount: u32) {
+        let last_round = self.last().unwrap();
+        //当前轮次无快照，且小于轮次上线，则创建新快照，否则仅更新
+        if last_round.round_index < current_round_index && self.len() < ROUND_MAX {
+            self.push(Round {
+                round_index: current_round_index,
+                reward_index: last_round.reward_index,
+                stake_amount: stake_amount,
+            })
+            .expect("should be ok ");
+        } else {
+            *self.last_stake_amount_mut().unwrap() = stake_amount;
+        }
+    }
 
     // /// 根据 index 获取元素
     // pub fn get(&self, index: usize) -> Option<&(u32, u32, u32)> {

@@ -1,5 +1,4 @@
 use crate::utils::calculate_total_reward;
-use crate::utils::flatten_user_stake_snap;
 use crate::{errors::*, state::*, utils::get_current_round_index};
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -19,10 +18,13 @@ pub fn handler(ctx: Context<Claim>,
 
     let clock = Clock::get()?;
     let current_round_index = get_current_round_index(pool_state.created_at,clock.unix_timestamp,pool_state.round_period_secs);
-    //let user_stakes_snap =  flatten_user_stake_snap(current_round,&user_state.stakes);
     //已解锁的禁止再claim
     if user_state.unlock_at.is_some(){
         return Err(StakeError::AlreadyUnlocked)?;
+    }
+
+    if user_state.is_unstaked {
+        Err(StakeError::AlreadyUnstake)?;
     }
 
     if pool_store.is_empty(){
@@ -57,14 +59,7 @@ pub fn handler(ctx: Context<Claim>,
     //如果当前轮次还没有快照，需要冗余标记，以解决claim的所在轮次没有快照，计算不了的问题
     let last_round = pool_store.last().unwrap();
     msg!("last_round.round_index={} current_round_index={},",last_round.round_index , current_round_index);
-    if last_round.round_index < current_round_index && pool_store.len() < ROUND_MAX{
-        msg!("line! {}",line!());
-        pool_store.push(Round {
-            round_index: current_round_index,
-            reward_index: last_round.reward_index,
-            stake_amount: last_round.stake_amount,
-        })?;
-    }
+    pool_store.update_stake_amount(current_round_index, last_round.stake_amount);
 
     //4) 进行奖励发放
     let round_period_secs_bytes = pool_state.round_period_secs.to_be_bytes();

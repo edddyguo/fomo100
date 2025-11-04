@@ -8,20 +8,26 @@ use anchor_spl::token::{self, Transfer};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
-    msg!("file {}, line: {}", file!(), line!());
-    if amount < TOKEN_SCALE as u64 || amount % (TOKEN_SCALE as u64) != 0 {
-        Err(StakeError::StakeAmountInvalid)?;
-    }
+    // msg!("file {}, line: {}", file!(), line!());
+    // if amount < TOKEN_SCALE as u64 || amount % (TOKEN_SCALE as u64) != 0 {
+    //     Err(StakeError::StakeAmountInvalid)?;
+    // }
 
     let pool_state = &mut ctx.accounts.pool_state;
     let pool_store = &mut ctx.accounts.pool_store.load_mut()?;
     let user_state = &mut ctx.accounts.user_state;
-    //todo; 用固定长度数据来处理，不然每次都要reserve
-    //user_state.stakes.reserve(MAX_USER_STAKE_TIMES as usize);
 
     msg!("file {}, line: {}", file!(), line!());
     msg!("pool_store.round_snaps.len(): {}", pool_store.len());
     msg!("user_state.stakes.len(): {}", user_state.stakes.len());
+
+    if user_state.is_unstaked {
+        Err(StakeError::AlreadyUnstake)?;
+    }
+
+    if user_state.unlock_at.is_some(){
+        Err( StakeError::AlreadyUnlocked)?;
+    }
 
     let clock = Clock::get()?;
     let current_round_index = get_current_round_index(
@@ -29,11 +35,7 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         clock.unix_timestamp,
         pool_state.round_period_secs,
     );
-    //已解锁的禁止再质押
-    //todo: 更多错误码
-    if user_state.unlock_at.is_some() {
-        Err(StakeError::AlreadyUnlocked)?;
-    }
+ 
     msg!("file {}, line: {}", file!(), line!());
 
     //整个池子的首次stake
