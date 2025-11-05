@@ -9,9 +9,7 @@ use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     msg!("file {}, line: {}", file!(), line!());
-    if amount < TOKEN_SCALE as u64 || amount % (TOKEN_SCALE as u64) != 0 {
-        Err(StakeError::StakeAmountInvalid)?;
-    }
+
 
     let pool_state = &mut ctx.accounts.pool_state;
     let pool_store = &mut ctx.accounts.pool_store.load_mut()?;
@@ -20,6 +18,10 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     msg!("file {}, line: {}", file!(), line!());
     msg!("pool_store.round_snaps.len(): {}", pool_store.len());
     msg!("user_state.stakes.len(): {}", user_state.stakes.len());
+
+    if amount < pool_state.min_stake_amount || amount % pool_state.token_scale != 0{
+        Err(StakeError::StakeAmountInvalid)?;
+    }
 
     if user_state.is_unstaked {
         Err(StakeError::AlreadyUnstake)?;
@@ -32,6 +34,8 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     if user_state.stakes.len() > MAX_USER_STAKE_TIMES{
         Err( StakeError::BeyondStakeLimit)?;
     }
+
+    let token_scale = pool_state.token_scale;
 
     let clock = Clock::get()?;
     let current_round_index = get_current_round_index(
@@ -50,17 +54,17 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         pool_store.push(Round {
             round_index: current_round_index,
             reward_index: pool_state.history_round_rewards.len() as u8  - 1,
-            stake_amount: amount.view(),
+            stake_amount: amount.view(token_scale),
         })?;
     //如果history_rounds的最后一个值等于current_round_index则说明，d当前轮次已经创建，直接更新即可
     } else {
         let last_round = pool_store.last().expect("must have a item");
         if last_round.round_index == current_round_index {
-            *pool_store.last_stake_amount_mut().unwrap() += amount.view();
+            *pool_store.last_stake_amount_mut().unwrap() += amount.view(token_scale);
         //如果history_rounds的最后一个值不等于current_round_index则说明，当前为这个轮次的第一个stake
         } else if last_round.round_index < current_round_index {
             //本地快照初始化继承上一轮的stake_amount值基础上增加当前用户质押数量
-            let stake_amount = last_round.stake_amount + amount.view();
+            let stake_amount = last_round.stake_amount + amount.view(token_scale);
             pool_store.push(Round {
                 round_index: current_round_index,
                 reward_index: last_round.reward_index,

@@ -1,7 +1,5 @@
 use anchor_lang::prelude::*;
 
-//单位聪
-pub const TOKEN_SCALE: u32 = 1_000_000;
 //3 Year
 //note: 为了内存对齐，此值必须是4的倍数
 pub const ROUND_MAX: usize = 1096;
@@ -10,9 +8,6 @@ pub const ROUND_MAX: usize = 1096;
 pub const MAX_USER_STAKE_TIMES: usize = 150;
 //最多设置100次奖励池子
 pub const MAX_REWARD_RECORDS: usize = 100;
-//解锁周期30天
-//pub const UNLOCK_INTERVAL: i64 = 30 * 24 * 60 * 60;
-pub const UNLOCK_INTERVAL: i64 = 5 * 60;
 
 //todo:用户抵押的钱单独申请一个account，当前先放在pool_vault中
 pub const POOL_VAULT_SEED: &str = "pool_vault";
@@ -67,17 +62,22 @@ pub struct Round {
 #[account]
 #[derive(Debug)]
 pub struct PoolState {
-    pub token_mint: Pubkey,
     pub admin: Pubkey,
+    pub token_mint: Pubkey,
+    //1_000_000 or 1_000_000_000
+    pub token_scale: u64,
+    pub min_stake_amount: u64,
     pub round_period_secs: u32,
+    //30 day
+    pub unlock_period_secs: u64,
     pub unlocking_stake_amount: u64,
     pub claimed_reward: u64,
     pub created_at: i64,
     //当前轮次奖金池,单位聪
     pub current_round_reward: u64,
+    pub unlocking_users: u32,
     //历史轮次奖金记录，最多100次
     pub history_round_rewards: Vec<u64>,
-    pub unlocking_users: u32,
 }
 
 impl PoolState {

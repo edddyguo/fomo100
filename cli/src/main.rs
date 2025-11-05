@@ -45,11 +45,17 @@ pub struct CreatePoolArgs {
     #[clap(long)]
     pub token_mint: String,
     #[clap(long)]
+    pub token_decimal: u8,
+    #[clap(long)]
+    pub min_stake_amount: u64,
+    #[clap(long)]
     pub created_at: i64,
     #[clap(long)]
     pub round_period_secs: u32,
     #[clap(long)]
     pub round_reward: u64,
+    #[clap(long)]
+    pub unlock_period_secs: u64,
 }
 
 #[derive(Parser, Debug)]
@@ -249,9 +255,12 @@ fn main() -> Result<()> {
             instructions::create_pool(
                 &program,
                 args.token_mint.as_str(),
+                args.token_decimal,
+                args.min_stake_amount,
                 args.created_at,
                 args.round_period_secs,
                 args.round_reward,
+                args.unlock_period_secs,
             )?;
         }
         Commands::ExpandPoolState(args) => {

@@ -1,4 +1,4 @@
-use std::u16;
+use std::{u16, u32};
 
 use crate::state::*;
 use anchor_lang::prelude::*;
@@ -7,26 +7,49 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 use spl_token::solana_program::sysvar::rewards;
+use crate::errors::StakeError;
 
 //创建指定开始时间的池子，设置轮次周期
 pub fn handler(
     ctx: Context<CreatePool>,
+    token_decimal: u8,
+    min_stake_amount: u64,
     created_at: i64,
     round_period_secs: u32,
     round_reward: u64,
+    unlock_period_secs: u64,
 ) -> Result<()> {
     let pool_store = &mut ctx.accounts.pool_store.load_init()?;
     pool_store.len = 0;
     //默认值为u16::Max规避0轮次问题
     pool_store.round_indexes = std::array::from_fn(|_| u16::MAX);
-    pool_store.reward_indexes = std::array::from_fn(|_| Default::default());
-    pool_store.stake_amounts = std::array::from_fn(|_| Default::default());
+    pool_store.reward_indexes = std::array::from_fn(|_| u8::MAX);
+    pool_store.stake_amounts = std::array::from_fn(|_| u32::MAX);
+
+    let token_scale = 10u64.pow(token_decimal.into());
+    //最小值应大于token精度
+    if min_stake_amount < token_scale {
+        Err(StakeError::StakeAmountInvalid)?;
+    }
 
     let pool_state = &mut ctx.accounts.pool_state;
 
+    pool_state.admin = ctx.accounts.admin.key();
+
     pool_state.token_mint = ctx.accounts.token_mint.key();
 
+    pool_state.token_scale = token_scale;
+
+    pool_state.min_stake_amount = min_stake_amount;
+
     pool_state.round_period_secs = round_period_secs;
+
+    pool_state.unlock_period_secs = unlock_period_secs;
+
+    pool_state.unlocking_stake_amount = 0;
+
+    pool_state.claimed_reward = 0;
+
 
     pool_state.created_at = created_at;
 
@@ -34,13 +57,7 @@ pub fn handler(
 
     pool_state.unlocking_users = 0;
 
-    pool_state.unlocking_stake_amount = 0;
-
-    pool_state.claimed_reward = 0;
-
     pool_state.history_round_rewards = vec![round_reward];
-    //设置管理员
-    pool_state.admin = ctx.accounts.admin.key();
 
     msg!(
         "Initialize pool {}",
@@ -51,7 +68,7 @@ pub fn handler(
 }
 
 #[derive(Accounts)]
-#[instruction(created_at:i64,round_period_secs: u32)]
+#[instruction(token_decimal:u8,min_stake_amount:u64,created_at:i64,round_period_secs: u32,round_reward:u64,unlock_period_secs:u64)]
 pub struct CreatePool<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,

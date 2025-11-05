@@ -48,9 +48,12 @@ pub fn expand_pool_state<T: TryInto<Pubkey>>(
 pub fn create_pool<T: TryInto<Pubkey>>(
     program: &anchor_client::Program<Rc<Keypair>>,
     token_mint: T,
+    token_decimal: u8,
+    min_stake_amount: u64,
     created_at: i64,
     round_period_secs: u32,
     round_reward: u64,
+    unlock_period_secs: u64,
 ) -> Result<Pubkey> {
     let dojo_mint_pubkey: Pubkey = token_mint
         .try_into()
@@ -101,9 +104,12 @@ pub fn create_pool<T: TryInto<Pubkey>>(
             system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
         })
         .args(fomo100::instruction::CreatePool {
+            token_decimal,
+            min_stake_amount,
             created_at,
             round_period_secs,
             round_reward,
+            unlock_period_secs,
         })
         .send()
         .unwrap();

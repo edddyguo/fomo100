@@ -3,9 +3,7 @@ use anchor_lang::prelude::*;
 use spl_token::solana_program::ed25519_program::ID as ED25519_ID;
 use spl_token::solana_program::instruction::Instruction;
 
-use crate::state::{
-    PoolState, PoolStore, Round, UserStake, MAX_USER_STAKE_TIMES, ROUND_MAX, TOKEN_SCALE,
-};
+use crate::state::{PoolState, PoolStore, Round, UserStake, MAX_USER_STAKE_TIMES, ROUND_MAX};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ops::{Deref, RangeBounds};
@@ -154,19 +152,11 @@ pub fn calculate_total_reward(
         let reward_index = pool_store.reward_indexes[actual_index as usize];
         //获取奖池金额
         let pool_round_reward = pool_state.history_round_rewards[reward_index as usize];
-        // msg!(
-        //     "pool_round_reward={},pool_store.stake_amounts={:?},
-        //     current_stake_amount={},actual_index={},natural_index={}",
-        //     pool_round_reward,
-        //     &pool_store.stake_amounts[0..=(actual_index + 5)],
-        //     current_stake_amount,
-        //     actual_index,
-        //     natural_index
-        // );
         let reward = calculate_user_reward(
             pool_round_reward,
             pool_store.stake_amounts[actual_index],
             current_stake_amount,
+            pool_state.token_scale,
         );
         //累加总奖励，更新last_round_reward值
         total_reward += reward;
@@ -198,8 +188,10 @@ pub fn calculate_user_reward(
     round_reward: u64,
     round_stake_amount: u32,
     user_stake_amount: u64,
+    token_scale: u64,
 ) -> u64 {
-    ((user_stake_amount as u128) * (round_reward as u128) / round_stake_amount.raw() as u128) as u64
+    ((user_stake_amount as u128) * (round_reward as u128)
+        / round_stake_amount.raw(token_scale) as u128) as u64
 }
 
 use bytemuck::{Pod, Zeroable};
@@ -291,22 +283,22 @@ use bytemuck::{Pod, Zeroable};
 // }
 
 pub trait AmountRaw {
-    fn raw(self) -> u64;
+    fn raw(&self, scale: u64) -> u64;
 }
 
 impl AmountRaw for u32 {
-    fn raw(self) -> u64 {
-        self as u64 * TOKEN_SCALE as u64
+    fn raw(&self, scale: u64) -> u64 {
+        (*self as u64) * scale
     }
 }
 
 pub trait AmountView {
-    fn view(&self) -> u32;
+    fn view(&self, scale: u64) -> u32;
 }
 
 impl AmountView for u64 {
-    fn view(&self) -> u32 {
-        (self / TOKEN_SCALE as u64) as u32
+    fn view(&self, scale: u64) -> u32 {
+        (self / scale) as u32
     }
 }
 

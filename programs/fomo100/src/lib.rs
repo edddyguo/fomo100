@@ -21,11 +21,22 @@ pub mod fomo100 {
 
     pub fn create_pool(
         ctx: Context<CreatePool>,
+        token_decimal: u8,
+        min_stake_amount: u64,
         created_at: i64,
         round_period_secs: u32,
         round_reward: u64,
+        unlock_period_secs: u64,
     ) -> Result<()> {
-        instructions::create_pool::handler(ctx, created_at, round_period_secs, round_reward)
+        instructions::create_pool::handler(
+            ctx,
+            token_decimal,
+            min_stake_amount,
+            created_at,
+            round_period_secs,
+            round_reward,
+            unlock_period_secs,
+        )
     }
 
     pub fn expand_pool_state(ctx: Context<ExpandPoolState>) -> Result<()> {

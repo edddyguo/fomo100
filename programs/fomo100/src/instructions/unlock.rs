@@ -21,6 +21,8 @@ pub fn handler(ctx: Context<Unlock>, created_at: i64, round_period_secs: u32) ->
         pool_state.round_period_secs,
     );
 
+    let token_scale = pool_state.token_scale;
+
     //如果已解锁，报错，禁止重复解锁
     if user_state.unlock_at.is_some(){
         Err( StakeError::AlreadyUnlocked)?;
@@ -43,7 +45,7 @@ pub fn handler(ctx: Context<Unlock>, created_at: i64, round_period_secs: u32) ->
     let unlock_at  = if pool_store.len() >= ROUND_MAX {
         clock.unix_timestamp
     }else {
-        clock.unix_timestamp + UNLOCK_INTERVAL
+        clock.unix_timestamp + pool_state.unlock_period_secs as i64
     };
     user_state.unlock_at = Some(unlock_at);
 
@@ -83,7 +85,7 @@ pub fn handler(ctx: Context<Unlock>, created_at: i64, round_period_secs: u32) ->
     //5) update pool store,扣减总质押金额
     let last_round = pool_store.last().unwrap();
      msg!("last_round.round_index={} current_round_index={},",last_round.round_index , current_round_index);
-    let current_stake_amount = last_round.stake_amount -  user_stake_amount.view();
+    let current_stake_amount = last_round.stake_amount -  user_stake_amount.view(token_scale);
     pool_store.create_or_update_snap(current_round_index,None,Some(current_stake_amount));
     
     Ok(())
