@@ -104,7 +104,7 @@ solana address -k 1.json
 
 ```
 ## 创建池子，记得创建完要给池子打钱
-../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://api.devnet.solana.com create-pool --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --token-decimal 9  --min-stake-amount 1000 --created-at 1762312341 --round-period-secs 300 --round-reward 10000 --unlock-period-secs 300
+../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://api.devnet.solana.com create-pool --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --token-decimal 9  --min-stake-amount 1000000 --created-at 1762312341 --round-period-secs 300 --round-reward 10000 --unlock-period-secs 300
 
 //扩展池子空间
 //10年的量需要73000(3600*20)的byte，每次10k的申请消耗0.07个sol，这里time给个8次就行了
@@ -145,6 +145,6 @@ for ((i=0;i<=101;i++)); do date;../target/debug/anchor_cli --prikey 3FiXBX3gPXAM
 ## 流程 交互
 
 ```
-create_pool -> 用户stake -> 用户claim -> 用户追加stake -> 用户再次claim
+create_pool -> 给池子打钱 -> 用户stake -> 用户claim -> 用户追加stake -> 用户再次claim
 -> 用户unlock ->等30天之后->用户unstake
 ```

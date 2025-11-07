@@ -90,9 +90,11 @@ impl PoolState {
 pub struct PoolStore {
     //剔除pub属性
     //最多更改256回的奖池资金
+    //池子奖励快照
     pub reward_indexes: [u8; ROUND_MAX],
+    //自然轮次值的快照
     pub round_indexes: [u16; ROUND_MAX],
-    //为了节省空间此处仅存整数部分
+    //总质押快照，单位为个
     pub stake_amounts: [u32; ROUND_MAX],
     pub len: u32, // 当前有效长度
 }

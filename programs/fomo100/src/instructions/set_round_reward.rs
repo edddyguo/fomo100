@@ -32,6 +32,7 @@ pub fn handler(ctx: Context<SetRoundReward>, round_reward: u64) -> Result<()> {
     let rewards_len = pool_state.history_round_rewards.len() as u8;
     pool_store.create_or_update_snap(current_round_index, Some(rewards_len), None);
     pool_state.history_round_rewards.push(round_reward);
+    pool_state.current_round_reward = round_reward;
 
     Ok(())
 }
