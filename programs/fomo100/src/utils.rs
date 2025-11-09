@@ -123,8 +123,6 @@ pub fn calculate_total_reward(
     let mut last_user_stake_amount = 0u64;
     let mut last_round_reward = 0u64;
 
-    // msg!("round_indexesA = {:?}", &pool_store.round_indexes[0..10]);
-    // msg!("round_indexesB = {:?}", pool_store.round_indexes());
     //最多1096个循环
     for (actual_index, natural_index) in pool_store.round_indexes().iter().enumerate() {
         //首个快照不需要计算跳空值
@@ -132,6 +130,12 @@ pub fn calculate_total_reward(
             let round_skip_num = natural_index - pool_store.round_indexes[actual_index - 1];
             //连续的轮次跳空奖励为0
             total_reward += (round_skip_num - 1) as u64 * last_round_reward;
+            // println!(
+            //     "add total_reward {},round_skip_num = {},last_round_reward={}",
+            //     (round_skip_num - 1) as u64 * last_round_reward,
+            //     round_skip_num,
+            //     last_round_reward,
+            // )
         }
 
         //找到则使用用户对应轮次的质押值，并更新last_user_stake_amount,否则则使用上一轮次的值,
@@ -160,19 +164,32 @@ pub fn calculate_total_reward(
         );
         //累加总奖励，更新last_round_reward值
         total_reward += reward;
+        // println!(
+        //     "add total_reward {},pool_round_reward = {},pool_stake_amounts={},user_stake_amount={}",
+        //     reward, pool_round_reward, pool_store.stake_amounts[actual_index], current_stake_amount
+        // );
         last_round_reward = reward;
     }
     //最后一次快照到当前为止的剩余有效轮次，比如最后一次快照在自然轮次12，当前自然轮次为15，则剩下的有效奖励轮次为 2，即（第13和第14）
     let last_round_index = *pool_store.round_indexes().last().unwrap();
-    //如果超过最大轮次，一律按照最大轮次结算收益
-    let last_round_index = if last_round_index > ROUND_MAX as u16 {
-        ROUND_MAX as u16
+    //如果自然轮次超过最后一个快照的轮次，收益也截止到最后一个快照轮次
+    let current_round_index = if current_round_index > pool_store.round_indexes[ROUND_MAX - 1] {
+        pool_store.round_indexes[ROUND_MAX - 1] + 1
     } else {
-        last_round_index
+        current_round_index
     };
     if current_round_index > last_round_index {
         let remainder_natural_num = current_round_index - last_round_index - 1;
+
         total_reward += last_round_reward * remainder_natural_num as u64;
+        // println!(
+        //     "add total_reward {},last_round_reward = {},remainder_natural_num={},current_round_index={}.last_round_index={}",
+        //     last_round_reward * remainder_natural_num as u64,
+        //     last_round_reward,
+        //     remainder_natural_num,
+        //     current_round_index,
+        //     last_round_index,
+        // );
     }
 
     Ok(total_reward)
