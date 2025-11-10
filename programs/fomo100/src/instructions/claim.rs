@@ -32,8 +32,8 @@ pub fn handler(ctx: Context<Claim>,
     }
 
     msg!("current_round = {}",current_round_index);
-    // msg!("user_state = {:?}",user_state);
-    // msg!("pool_state = {:?}",pool_state);
+    msg!("user_state = {:?}",user_state);
+    msg!("pool_state = {:?}",pool_state);
     // msg!("pool_store = {:?}",pool_store);
 
     //当本轮次用户已经领取了，则归属奖励为0，则禁止再申领

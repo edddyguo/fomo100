@@ -8,16 +8,20 @@ use anchor_spl::token::{self, Transfer};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 
 pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
-    msg!("file {}, line: {}", file!(), line!());
-
-
     let pool_state = &mut ctx.accounts.pool_state;
     let pool_store = &mut ctx.accounts.pool_store.load_mut()?;
     let user_state = &mut ctx.accounts.user_state;
-
-    msg!("file {}, line: {}", file!(), line!());
-    msg!("pool_store.round_snaps.len(): {}", pool_store.len());
-    msg!("user_state.stakes.len(): {}", user_state.stakes.len());
+    
+    let clock = Clock::get()?;
+    let current_round_index = get_current_round_index(
+        pool_state.created_at,
+        clock.unix_timestamp,
+        pool_state.round_period_secs,
+    );
+    
+    msg!("current_round_index: {}", current_round_index);
+    msg!("pool_state: {:?}", pool_state);
+    msg!("user_state: {:?}", user_state);
 
     if amount < pool_state.min_stake_amount || amount % pool_state.token_scale != 0{
         Err(StakeError::StakeAmountInvalid)?;
@@ -36,19 +40,7 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     }
 
     let token_scale = pool_state.token_scale;
-
-    let clock = Clock::get()?;
-    let current_round_index = get_current_round_index(
-        pool_state.created_at,
-        clock.unix_timestamp,
-        pool_state.round_period_secs,
-    );
  
-    msg!("file {}, line: {}", file!(), line!());
-
-    //整个池子的首次stake
-    //let current_reward_index = pool_state.history_round_rewards.len() as u8 - 1;
-
     if pool_store.is_empty() {
         //reward 直接继承
         pool_store.push(Round {
@@ -75,7 +67,6 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         }
     }
 
-    msg!("file {}, line: {}", file!(), line!());
 
     //update user state
     require_gt!(
@@ -84,7 +75,6 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         StakeError::Unknown
     );
     user_state.user = ctx.accounts.user.key();
-    msg!("file {}, line: {}", file!(), line!());
 
     //如果首次质押，则历史质押值为0
     let default_stake = &UserStake::default();
@@ -98,7 +88,6 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         round_index: current_round_index,
         stake_amount: newest_stake_amount,
     };
-    msg!("file {}, line: {}", file!(), line!());
 
     match user_state.stakes.last_mut() {
         // //当前轮次，首次,
@@ -114,22 +103,20 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
             user_state.stakes.push(user_stake);
         }
         _ => {
-            unreachable!("{} {}", line!(), file!());
+            unreachable!("{}", line!());
         }
     }
-    msg!("file {}, line: {}", file!(), line!());
 
     let cpi_accounts = Transfer {
         from: ctx.accounts.user_ata.to_account_info(),
         to: ctx.accounts.user_vault.to_account_info(),
         authority: ctx.accounts.user.to_account_info(),
     };
-    msg!("file {}, line: {}", file!(), line!());
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
     token::transfer(cpi_ctx, amount)?;
-    msg!("file {}, line: {}", file!(), line!());
+    msg!("stake successfully");
 
     Ok(())
 }

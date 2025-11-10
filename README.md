@@ -148,3 +148,7 @@ for ((i=0;i<=101;i++)); do date;../target/debug/anchor_cli --prikey 3FiXBX3gPXAM
 create_pool -> 给池子打钱 -> 用户stake -> 用户claim -> 用户追加stake -> 用户再次claim
 -> 用户unlock ->等30天之后->用户unstake
 ```
+
+## 部署
+
+- 1、上线后记得把相关的日志打印删除，一来是安全，再者日志耗费 cu
