@@ -198,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    fn test_calculate_total_reward3() -> anyhow::Result<()> {
+    fn test_calculate_total_reward4() -> anyhow::Result<()> {
         let mut pool_store = PoolStore {
             reward_indexes: std::array::from_fn(|_| u8::MAX),
             round_indexes: std::array::from_fn(|_| u16::MAX),
@@ -207,15 +207,15 @@ mod tests {
         };
         let round_indexes: Vec<u16> = vec![
             4, 6, 7, 349, 361, 363, 364, 365, 371, 372, 391, 645, 879, 898, 914, 920, 939, 941,
-            944, 947, 948, 1245, 1246,
+            944, 947, 948, 1245, 1246, 1431,
         ];
         let reward_indexes = vec![
-            0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+            0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
         ];
 
         let stake_amounts = vec![
             2, 2, 0, 1, 3, 3, 3, 2, 5, 338, 338, 338, 339, 341, 341, 341, 341, 341, 341, 341, 342,
-            343, 343,
+            343, 343, 343,
         ];
         pool_store.len = round_indexes.len() as u32;
         pool_store.round_indexes[0..round_indexes.len()].copy_from_slice(&round_indexes);
@@ -238,12 +238,13 @@ mod tests {
         };
 
         let user_stakes = vec![UserStake {
-            round_index: 1245,
+            round_index: 1431,
             stake_amount: 2000000000,
         }];
-        let current_index = 1431;
+        let current_index = 1452;
         let res = calculate_total_reward(current_index, &pool_state, &pool_store, &user_stakes)?;
-        assert_eq!(res, 133894704);
+        println!("res {}", res);
+        assert_eq!(res, 15117144);
         Ok(())
     }
 }
