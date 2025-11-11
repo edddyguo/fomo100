@@ -149,13 +149,15 @@ pub struct UnstakeArgs {
 }
 
 #[derive(Parser, Debug)]
-pub struct CheckAndUpdateNftSigListArgs {
+pub struct CancelUnlock {
     #[clap(long)]
-    pub minter_program_id: String,
+    pub program_id: String,
     #[clap(long)]
-    pub core_collection_name: String,
+    pub token_mint: String,
     #[clap(long)]
-    pub elite_collection_name: String,
+    pub created_at: i64,
+    #[clap(long)]
+    pub round_period_secs: u32,
 }
 
 #[derive(Subcommand, Debug)]
@@ -169,7 +171,7 @@ pub enum Commands {
     UserState(UserStateArgs),
     Unlock(UnlockArgs),
     Unstake(UnstakeArgs),
-    CheckAndUpdateNftSigList(CheckAndUpdateNftSigListArgs),
+    CancelUnlock(CancelUnlock),
 }
 
 #[derive(Parser, Debug)]
@@ -348,8 +350,14 @@ fn main() -> Result<()> {
                 args.round_period_secs,
             )?;
         }
-        Commands::CheckAndUpdateNftSigList(args) => {
-            todo!()
+        Commands::CancelUnlock(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            instructions::cancel_unlock(
+                &program,
+                args.token_mint.as_str(),
+                args.created_at,
+                args.round_period_secs,
+            )?;
         }
     }
     Ok(())

@@ -59,8 +59,12 @@ pub mod fomo100 {
         instructions::unstake::handler(ctx, created_at, round_period_secs)
     }
 
-    pub fn update_pool(ctx: Context<Unstake>, reward: i64, owner: Vec<Pubkey>) -> Result<()> {
-        todo!()
+    pub fn cancel_unlock(
+        ctx: Context<CancelUnlock>,
+        created_at: i64,
+        round_period_secs: u32,
+    ) -> Result<()> {
+        instructions::cancel_unlock::handler(ctx, created_at, round_period_secs)
     }
 
     pub fn delegate_stake(ctx: Context<Unstake>, stake_start_at: i64, amount: u64) -> Result<()> {

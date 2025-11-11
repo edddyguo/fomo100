@@ -140,6 +140,9 @@ for ((i=0;i<=101;i++)); do date;../target/debug/anchor_cli --prikey 3FiXBX3gPXAM
 //申请解锁，
 ../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com unlock --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827331 --round-period-secs 120
 
+##取消解锁
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com cancel-unlock --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827330  --round-period-secs 120
+
 //申请赎回，
 ../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com unstake --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827331 --round-period-secs 120
 ```

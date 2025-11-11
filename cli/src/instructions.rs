@@ -445,6 +445,95 @@ pub fn unlock(
     Ok(())
 }
 
+pub fn cancel_unlock(
+    program: &anchor_client::Program<Rc<Keypair>>,
+    token_mint: &str,
+    created_at: i64,
+    round_period_secs: u32,
+) -> Result<()> {
+    let dojo_mint_pubkey: Pubkey = token_mint
+        .try_into()
+        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    let payer_pubkey = program.payer();
+
+    //get pool pda
+    let (pool_state_pda, _bump) = Pubkey::find_program_address(
+        &[
+            dojo_mint_pubkey.key().as_ref(),
+            created_at.to_be_bytes().as_ref(),
+            round_period_secs.to_be_bytes().as_ref(),
+            POOL_STATE_SEED.as_bytes(),
+        ],
+        &program.id(),
+    );
+    let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
+    let (pool_store_pda, _bump) = Pubkey::find_program_address(
+        &[
+            dojo_mint_pubkey.key().as_ref(),
+            created_at.to_be_bytes().as_ref(),
+            round_period_secs.to_be_bytes().as_ref(),
+            POOL_STORE_SEED.as_bytes(),
+        ],
+        &program.id(),
+    );
+    // 2) get user pda
+    let (user_state_pda, _bump) = Pubkey::find_program_address(
+        &[
+            payer_pubkey.key().as_ref(),
+            pool_state_pda.key().as_ref(),
+            USER_STATE_SEED.as_bytes(),
+        ],
+        &program.id(),
+    );
+
+    let user_vault = get_associated_token_address(&user_state_pda, &dojo_mint_pubkey);
+
+    let user_ata = get_associated_token_address(&payer_pubkey, &dojo_mint_pubkey);
+
+    println!(
+        "payer_pubkey={},
+        pool_state_pda={},
+        pool_vault={},
+        dojo_mint_pubkey={},
+        user_state_pda={},
+        user_vault={},
+        user_ata={}
+        ",
+        payer_pubkey,
+        pool_state_pda,
+        pool_vault,
+        dojo_mint_pubkey,
+        user_state_pda,
+        user_vault,
+        user_ata
+    );
+    let init_res = program
+        .request()
+        //max:
+        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
+        //max: 128KB
+        .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
+        .accounts(fomo100::accounts::CancelUnlock {
+            user: payer_pubkey,
+            user_state: user_state_pda,
+            pool_state: pool_state_pda.clone(),
+            pool_store: pool_store_pda.clone(),
+            user_ata,
+            pool_vault: pool_vault,
+            token_mint: dojo_mint_pubkey.clone(),
+            token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
+            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+        })
+        .args(fomo100::instruction::CancelUnlock {
+            created_at,
+            round_period_secs,
+        })
+        .send()
+        .unwrap();
+    println!("init settings {}", init_res.to_string());
+    Ok(())
+}
+
 pub fn unstake(
     program: &anchor_client::Program<Rc<Keypair>>,
     token_mint: &str,
