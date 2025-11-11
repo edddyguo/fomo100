@@ -4,7 +4,7 @@
 
 总奖励：132
 
-../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com user-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --created-at 1762313139  --round-period-secs 302 --user-pubkey 26gtapjAN4fX9nCPxu5huZe91h1Kq9nPGPTYPma9SK9s
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com user-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762313139  --round-period-secs 302 --user-pubkey 26gtapjAN4fX9nCPxu5huZe91h1Kq9nPGPTYPma9SK9s
 current_rund_index: 363
 pool_state UserState {
     user: 26gtapjAN4fX9nCPxu5huZe91h1Kq9nPGPTYPma9SK9s,
@@ -18,11 +18,11 @@ pool_state UserState {
     claimed_reward: 0,
     is_unstaked: false,
 }
-ubuntu@ip-172-31-3-195:~/eddy/fomo100/cli$ ../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --created-at 1762313139  --round-period-secs 302
+ubuntu@ip-172-31-3-195:~/eddy/fomo100/cli$ ../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762313139  --round-period-secs 302
 current_rund_index: 363
 pool_state PoolState {
     admin: 7muWY7LByS4ShDeyVaTCj4MgGuN6DwBacrnDLPwhCAKf,
-    token_mint: CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h,
+    token_mint: DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk,
     token_scale: 1000000000,
     min_stake_amount: 1000000000,
     round_period_secs: 302,
@@ -43,7 +43,7 @@ pool_state PoolStore { reward_indexes: [0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 
 
 ```
 reward_amount=315939
-../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com user-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --created-at 1762313139  --round-period-secs 302 --user-pubkey 26gtapjAN4fX9nCPxu5huZe91h1Kq9nPGPTYPma9SK9s
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com user-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762313139  --round-period-secs 302 --user-pubkey 26gtapjAN4fX9nCPxu5huZe91h1Kq9nPGPTYPma9SK9s
 current_rund_index: 390
 pool_state UserState {
     user: 26gtapjAN4fX9nCPxu5huZe91h1Kq9nPGPTYPma9SK9s,
@@ -57,11 +57,11 @@ pool_state UserState {
     claimed_reward: 132,
     is_unstaked: false,
 }
-ubuntu@ip-172-31-3-195:~/eddy/fomo100/cli$ ../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h --created-at 1762313139  --round-period-secs 302
+ubuntu@ip-172-31-3-195:~/eddy/fomo100/cli$ ../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762313139  --round-period-secs 302
 current_rund_index: 390
 pool_state PoolState {
     admin: 7muWY7LByS4ShDeyVaTCj4MgGuN6DwBacrnDLPwhCAKf,
-    token_mint: CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h,
+    token_mint: DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk,
     token_scale: 1000000000,
     min_stake_amount: 1000000000,
     round_period_secs: 302,
@@ -101,7 +101,7 @@ pool_state UserState {
 
 pool_state PoolState {
     admin: 7muWY7LByS4ShDeyVaTCj4MgGuN6DwBacrnDLPwhCAKf,
-    token_mint: CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h,
+    token_mint: DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk,
     token_scale: 1000000000,
     min_stake_amount: 1000000000,
     round_period_secs: 302,
@@ -143,7 +143,7 @@ pool_state UserState {
 current_rund_index: 1452
 pool_state PoolState {
     admin: 7muWY7LByS4ShDeyVaTCj4MgGuN6DwBacrnDLPwhCAKf,
-    token_mint: CNyDaZUfYjpn3Epdtp4PAXCaJQ7C2GuSkWgr6NsHoE1h,
+    token_mint: DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk,
     token_scale: 1000000000,
     min_stake_amount: 1000000000,
     round_period_secs: 302,

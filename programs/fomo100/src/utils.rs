@@ -112,7 +112,19 @@ pub fn calculate_total_reward(
     } else {
         user_stakes
     };
-    //msg!("user_stakes {:?}", valid_user_stakes);
+
+    //获取奖池的有效轮次，最后的快照处于当前轮次，则不参与奖励计算
+    let pool_round_indexes = pool_store.round_indexes();
+    let valid_round_index = if *pool_round_indexes.last().unwrap() == current_round_index {
+        //用户首次质押的轮次，奖励也为0
+        if pool_store.len() == 1 {
+            return Ok(0);
+        } else {
+            &pool_round_indexes[..pool_round_indexes.len() - 1]
+        }
+    } else {
+        pool_round_indexes
+    };
 
     let user_stake_map: HashMap<u16, u64> = valid_user_stakes
         .iter()
@@ -124,14 +136,14 @@ pub fn calculate_total_reward(
     let mut last_round_reward = 0u64;
 
     //最多1096个循环
-    for (actual_index, natural_index) in pool_store.round_indexes().iter().enumerate() {
+    for (actual_index, natural_index) in valid_round_index.iter().enumerate() {
         //首个快照不需要计算跳空值
         if actual_index != 0 {
             let round_skip_num = natural_index - pool_store.round_indexes[actual_index - 1];
             //连续的轮次跳空奖励为0
             total_reward += (round_skip_num - 1) as u64 * last_round_reward;
             // println!(
-            //     "add total_reward {},round_skip_num = {},last_round_reward={}",
+            //     "actual_index = {actual_index},natural_index={natural_index}\n add total_reward {},round_skip_num = {},last_round_reward={}",
             //     (round_skip_num - 1) as u64 * last_round_reward,
             //     round_skip_num,
             //     last_round_reward,
@@ -165,7 +177,7 @@ pub fn calculate_total_reward(
         //累加总奖励，更新last_round_reward值
         total_reward += reward;
         // println!(
-        //     "add total_reward {},pool_round_reward = {},pool_stake_amounts={},user_stake_amount={}",
+        //     "actual_index = {actual_index},natural_index={natural_index}\n add total_reward {},pool_round_reward = {},pool_stake_amounts={},user_stake_amount={}",
         //     reward, pool_round_reward, pool_store.stake_amounts[actual_index], current_stake_amount
         // );
         last_round_reward = reward;

@@ -146,7 +146,7 @@ mod tests {
     use fomo100::utils::calculate_total_reward;
 
     #[test]
-    fn test_calculate_total_reward() -> anyhow::Result<()> {
+    fn test_calculate_total_reward3() -> anyhow::Result<()> {
         let mut pool_store = PoolStore {
             reward_indexes: std::array::from_fn(|_| u8::MAX),
             round_indexes: std::array::from_fn(|_| u16::MAX),
@@ -245,6 +245,54 @@ mod tests {
         let res = calculate_total_reward(current_index, &pool_state, &pool_store, &user_stakes)?;
         println!("res {}", res);
         assert_eq!(res, 15117144);
+        Ok(())
+    }
+
+    #[test]
+    fn test_calculate_total_reward5() -> anyhow::Result<()> {
+        let mut pool_store = PoolStore {
+            reward_indexes: std::array::from_fn(|_| u8::MAX),
+            round_indexes: std::array::from_fn(|_| u16::MAX),
+            stake_amounts: std::array::from_fn(|_| u32::MAX),
+            len: 0,
+        };
+        let round_indexes: Vec<u16> = vec![9, 10];
+        let reward_indexes = vec![0, 0];
+
+        let stake_amounts = vec![4, 5];
+        pool_store.len = round_indexes.len() as u32;
+        pool_store.round_indexes[0..round_indexes.len()].copy_from_slice(&round_indexes);
+        pool_store.reward_indexes[0..round_indexes.len()].copy_from_slice(&reward_indexes);
+        pool_store.stake_amounts[0..round_indexes.len()].copy_from_slice(&stake_amounts);
+
+        let pool_state = PoolState {
+            admin: "7muWY7LByS4ShDeyVaTCj4MgGuN6DwBacrnDLPwhCAKf".try_into()?,
+            token_mint: "DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk".try_into()?,
+            token_scale: 1000000,
+            min_stake_amount: 1000000,
+            round_period_secs: 120,
+            unlock_period_secs: 60,
+            unlocking_stake_amount: 0,
+            claimed_reward: 91846294586,
+            created_at: 1762827326,
+            current_round_reward: 1000000,
+            unlocking_users: 2,
+            history_round_rewards: vec![1000000],
+        };
+
+        let user_stakes = vec![
+            UserStake {
+                round_index: 9,
+                stake_amount: 4000000,
+            },
+            UserStake {
+                round_index: 10,
+                stake_amount: 5000000,
+            },
+        ];
+        let current_index = 10;
+        let res = calculate_total_reward(current_index, &pool_state, &pool_store, &user_stakes)?;
+        assert_eq!(res, 1_000_000);
         Ok(())
     }
 }
