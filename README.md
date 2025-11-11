@@ -103,10 +103,10 @@ solana address -k 1.json
 ## cli tool
 
 ```
-1762827326
+1762827331
 
 ## 创建池子，记得创建完要给池子打钱
-../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://api.devnet.solana.com create-pool --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --token-decimal 6  --min-stake-amount 1000000 --created-at 1762827326 --round-period-secs 120 --round-reward 1000000 --unlock-period-secs 60
+../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://api.devnet.solana.com create-pool --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --token-decimal 6  --min-stake-amount 1000000 --created-at 1762827331 --round-period-secs 120 --round-reward 1000000 --unlock-period-secs 60
 
 //扩展池子空间
 //10年的量需要73000(3600*20)的byte，每次10k的申请消耗0.07个sol，这里time给个8次就行了
@@ -114,7 +114,7 @@ solana address -k 1.json
 ../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://stylish-flashy-scion.solana-devnet.quiknode.pro/440b45854c57eb8ec133590d26123a835cc5a69f expand-pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --account Bz2KV5dKiaUQmT4qUb73U3ELtjdzMg3y5A24QhBD6hym --times 8
 
 //单次stake,4rSLmYTB6UASS4MbrxrEPE8H2VBQ4kY789d7RrU6wPjS
-../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com stake --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827326 --round-period-secs 120 --stake-amount 1000000
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com stake --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827331 --round-period-secs 120 --stake-amount 1000000
 
 
 //多次连续stake,耽搁用户最高100次
@@ -127,21 +127,21 @@ for ((i=0;i<=101;i++)); do date;../target/debug/anchor_cli --prikey 3FiXBX3gPXAM
 
 
 //查看pool_state
-../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827326 --round-period-secs 120
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com pool-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827331 --round-period-secs 120
 
 //查看user_state
-../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com user-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827326 --round-period-secs 120 --user-pubkey 4rSLmYTB6UASS4MbrxrEPE8H2VBQ4kY789d7RrU6wPjS
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com user-state --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827331 --round-period-secs 120 --user-pubkey 4rSLmYTB6UASS4MbrxrEPE8H2VBQ4kY789d7RrU6wPjS
 
 //申领当前自然轮次之前的奖励
-../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com claim --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827326 --round-period-secs 120
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com claim --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827331 --round-period-secs 120
 
 
 
 //申请解锁，
-../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com unlock --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827326 --round-period-secs 120
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com unlock --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827331 --round-period-secs 120
 
 //申请赎回，
-../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com unstake --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827326 --round-period-secs 120
+../target/debug/anchor_cli --prikey 51SH5R65CUANeZLyg4FR4bAVdfYEj8cK2VTGtQqBmyxtTiGFy6nDPQGhd4fGMMzpkFz8SBXvLSKJjz3vCPrSQb16 --rpc-url https://api.devnet.solana.com unstake --program-id 33zLb3sV3rpgaDwzsjHUYBW3SkQCVCaaj1uk7k5juzxQ --token-mint DvLeK1ff2pnVKn1XEMUvVH2wwj9rjtUzPTPLqN8DRtpk --created-at 1762827331 --round-period-secs 120
 ```
 
 ## 流程 交互

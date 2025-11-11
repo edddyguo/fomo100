@@ -274,7 +274,7 @@ mod tests {
             unlock_period_secs: 60,
             unlocking_stake_amount: 0,
             claimed_reward: 91846294586,
-            created_at: 1762827326,
+            created_at: 1762827331,
             current_round_reward: 1000000,
             unlocking_users: 2,
             history_round_rewards: vec![1000000],

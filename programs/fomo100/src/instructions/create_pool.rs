@@ -50,11 +50,9 @@ pub fn handler(
 
     pool_state.claimed_reward = 0;
 
-    pool_state.current_round_reward = round_reward;
-
     pool_state.created_at = created_at;
 
-    pool_state.current_round_reward = 0;
+    pool_state.current_round_reward = round_reward;
 
     pool_state.unlocking_users = 0;
 
