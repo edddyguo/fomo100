@@ -94,6 +94,23 @@ function calculateTotalReward(
           .filter((idx) => isValidValue(idx))
       : [];
 
+  if (roundIndexes.length === 0) {
+    validRoundIndexes = [];
+  } else {
+    const lastIndex = roundIndexes[roundIndexes.length - 1];
+    if (lastIndex === currentRoundIndex) {
+      // 如果只有一个轮次，说明是首次质押，返回空数组
+      if (roundIndexes.length === 1) {
+        validRoundIndexes = [];
+      } else {
+        // 否则去掉最后一个
+        validRoundIndexes = roundIndexes.slice(0, -1);
+      }
+    } else {
+      validRoundIndexes = roundIndexes;
+    }
+  }
+
   const rewardIndexes =
     poolStore.reward_indexes && Array.isArray(poolStore.reward_indexes)
       ? poolStore.reward_indexes
@@ -144,8 +161,12 @@ function calculateTotalReward(
   let lastRoundReward = 0;
 
   // 遍历所有有效的轮次记录
-  for (let actualIndex = 0; actualIndex < roundIndexes.length; actualIndex++) {
-    const naturalIndex = roundIndexes[actualIndex];
+  for (
+    let actualIndex = 0;
+    actualIndex < validRoundIndexes.length;
+    actualIndex++
+  ) {
+    const naturalIndex = validRoundIndexes[actualIndex];
     const rewardIndex = rewardIndexes[actualIndex];
     const stakeAmount = stakeAmounts[actualIndex];
 
