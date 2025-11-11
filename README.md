@@ -146,7 +146,10 @@ for ((i=0;i<=101;i++)); do date;../target/debug/anchor_cli --prikey 3FiXBX3gPXAM
 
 ```
 create_pool -> 给池子打钱 -> 用户stake -> 用户claim -> 用户追加stake -> 用户再次claim
--> 用户unlock ->等30天之后->用户unstake
+-> 用户unlock ->等30天之后->用户unstake->当前处于stake为零的状态->再次stake
+
+
+
 ```
 
 ## 部署

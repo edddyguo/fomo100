@@ -23,10 +23,6 @@ pub fn handler(ctx: Context<Claim>,
         return Err(StakeError::AlreadyUnlocked)?;
     }
 
-    if user_state.is_unstaked {
-        Err(StakeError::AlreadyUnstake)?;
-    }
-
     if pool_store.is_empty(){
         return Err(StakeError::PoolStoreIsEmpty)?;
     }

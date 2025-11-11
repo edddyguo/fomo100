@@ -27,10 +27,6 @@ pub fn handler(ctx: Context<Unstake>, created_at: i64, round_period_secs: u32) -
         }
     }
 
-    if user_state.is_unstaked {
-        Err(StakeError::AlreadyUnstake)?;
-    }
-
     //todo:解除质押的尽量把用户的account也给回收掉，不刚需前端也许还有读状态
     let staked_amount = user_state
         .stakes
@@ -39,7 +35,10 @@ pub fn handler(ctx: Context<Unstake>, created_at: i64, round_period_secs: u32) -
         .stake_amount;
 
     //update user state
-    user_state.is_unstaked = true;
+    //重置质押状态
+    user_state.unlock_at = None;
+    user_state.stakes = vec![];
+    user_state.claimed_reward = 0;
 
     //update pool state
     //todo:

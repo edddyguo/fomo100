@@ -27,10 +27,6 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
         Err(StakeError::StakeAmountInvalid)?;
     }
 
-    if user_state.is_unstaked {
-        Err(StakeError::AlreadyUnstake)?;
-    }
-
     if user_state.unlock_at.is_some(){
         Err( StakeError::AlreadyUnlocked)?;
     }

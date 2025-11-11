@@ -33,7 +33,6 @@ pub struct UserState {
     pub unlock_at: Option<i64>,
     // claimed_reward is null before claim
     pub claimed_reward: u64,
-    pub is_unstaked: bool,
 }
 
 impl UserState {
