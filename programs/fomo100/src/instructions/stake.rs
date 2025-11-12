@@ -20,8 +20,8 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     );
     
     msg!("current_round_index: {}", current_round_index);
-    msg!("pool_state: {:?}", pool_state);
-    msg!("user_state: {:?}", user_state);
+    // msg!("pool_state: {:?}", pool_state);
+    // msg!("user_state: {:?}", user_state);
 
     if amount < pool_state.min_stake_amount || amount % pool_state.token_scale != 0{
         Err(StakeError::StakeAmountInvalid)?;

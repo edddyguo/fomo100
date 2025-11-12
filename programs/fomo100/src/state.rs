@@ -9,7 +9,6 @@ pub const MAX_USER_STAKE_TIMES: usize = 150;
 //最多设置100次奖励池子
 pub const MAX_REWARD_RECORDS: usize = 100;
 
-//todo:用户抵押的钱单独申请一个account，当前先放在pool_vault中
 pub const POOL_VAULT_SEED: &str = "pool_vault";
 pub const POOL_STATE_SEED: &str = "pool_state";
 pub const POOL_STORE_SEED: &str = "pool_store";
@@ -170,7 +169,6 @@ impl PoolStore {
     }
 
     //获取有效的轮次，即非零值
-    //todo: 第零轮有人玩的话也是有值且为零
     pub fn round_indexes(&self) -> &[u16] {
         match self.round_indexes.iter().position(|x| *x == u16::MAX) {
             Some(0) => &[],

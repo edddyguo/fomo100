@@ -6,7 +6,7 @@ use anchor_spl::{
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
 
-//todo: 保证逻辑上的更自然，unlock的时候会把用户的reward也顺带发给用户
+//unlock的时候会把用户的reward也顺带发给用户
 pub fn handler(ctx: Context<Unstake>, created_at: i64, round_period_secs: u32) -> Result<()> {
     let user_state = &mut ctx.accounts.user_state;
     let pool_state = &mut ctx.accounts.pool_state;
@@ -41,15 +41,10 @@ pub fn handler(ctx: Context<Unstake>, created_at: i64, round_period_secs: u32) -
     user_state.claimed_reward = 0;
 
     //update pool state
-    //todo:
-    //pool_state.claimed_reward += staked_amount;
 
     //step3: transfer stake amount
     let user_key = ctx.accounts.user.key();
     let pool_state_key =  pool_state.key();
-
-
-   // seeds=[user.key().as_ref(),pool_state.key().as_ref(), USER_STATE_SEED.as_bytes()], 
 
     let signer = &[
         user_key.as_ref(),
