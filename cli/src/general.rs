@@ -18,7 +18,7 @@ pub fn create_pda_account(
     round_period_secs: u32,
     prikey: &str,
 ) -> Result<()> {
-    let dojo_mint_pubkey: Pubkey = token_mint
+    let token_mint_pubkey: Pubkey = token_mint
         .try_into()
         .map_err(|e| anyhow!("token_mint.try_into failed"))?;
     // 连接到本地或 devnet

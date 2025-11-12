@@ -55,14 +55,14 @@ pub fn create_pool<T: TryInto<Pubkey>>(
     round_reward: u64,
     unlock_period_secs: u64,
 ) -> Result<Pubkey> {
-    let dojo_mint_pubkey: Pubkey = token_mint
+    let token_mint_pubkey: Pubkey = token_mint
         .try_into()
         .map_err(|e| anyhow!("token_mint.try_into failed"))?;
     let payer_pubkey = program.payer();
 
     let (pool_state_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STATE_SEED.as_bytes(),
@@ -72,7 +72,7 @@ pub fn create_pool<T: TryInto<Pubkey>>(
 
     let (pool_store_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STORE_SEED.as_bytes(),
@@ -80,15 +80,15 @@ pub fn create_pool<T: TryInto<Pubkey>>(
         &program.id(),
     );
 
-    let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
+    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
 
     println!(
         "\npayer_pubkey={}\n,
         pool_state_pda={},
         pool_vault={},
         pool_store_pda={},
-        dojo_mint_pubkey={},",
-        payer_pubkey, pool_state_pda, pool_vault, pool_store_pda, dojo_mint_pubkey,
+        token_mint_pubkey={},",
+        payer_pubkey, pool_state_pda, pool_vault, pool_store_pda, token_mint_pubkey,
     );
     let init_res = program
         .request()
@@ -97,7 +97,7 @@ pub fn create_pool<T: TryInto<Pubkey>>(
             pool_state: pool_state_pda.clone(),
             pool_store: pool_store_pda.clone(),
             pool_vault: pool_vault,
-            token_mint: dojo_mint_pubkey.clone(),
+            token_mint: token_mint_pubkey.clone(),
             associated_token_program: Pubkey::from_str(SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID)
                 .unwrap(),
             token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
@@ -114,7 +114,7 @@ pub fn create_pool<T: TryInto<Pubkey>>(
         .send()
         .unwrap();
     println!("init settings {}", init_res.to_string());
-    let collection_state = program.pool_state(&dojo_mint_pubkey, created_at, round_period_secs)?;
+    let collection_state = program.pool_state(&token_mint_pubkey, created_at, round_period_secs)?;
     println!("collection_state: {:?}", collection_state);
     Ok(pool_state_pda)
 }
@@ -135,14 +135,14 @@ pub fn set_round_reward<T: TryInto<Pubkey>>(
     round_period_secs: u32,
     round_reward: u64,
 ) -> Result<()> {
-    let dojo_mint_pubkey: Pubkey = token_mint
+    let token_mint_pubkey: Pubkey = token_mint
         .try_into()
         .map_err(|e| anyhow!("token_mint.try_into failed"))?;
     let payer_pubkey = program.payer();
 
     let (pool_state_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STATE_SEED.as_bytes(),
@@ -152,7 +152,7 @@ pub fn set_round_reward<T: TryInto<Pubkey>>(
 
     let (pool_store_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STORE_SEED.as_bytes(),
@@ -172,7 +172,7 @@ pub fn set_round_reward<T: TryInto<Pubkey>>(
         .send()
         .unwrap();
     println!("call res:  {}", res.to_string());
-    let pool_state = program.pool_state(&dojo_mint_pubkey, created_at, round_period_secs)?;
+    let pool_state = program.pool_state(&token_mint_pubkey, created_at, round_period_secs)?;
     println!("pool_state: {:?}", pool_state);
     Ok(())
 }
@@ -184,7 +184,7 @@ pub fn stake(
     round_period_secs: u32,
     amount: u64,
 ) -> Result<()> {
-    let dojo_mint_pubkey: Pubkey = token_mint
+    let token_mint_pubkey: Pubkey = token_mint
         .try_into()
         .map_err(|e| anyhow!("token_mint.try_into failed"))?;
     let payer_pubkey = program.payer();
@@ -192,17 +192,17 @@ pub fn stake(
     //get pool pda
     let (pool_state_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STATE_SEED.as_bytes(),
         ],
         &program.id(),
     );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
+    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
     let (pool_store_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STORE_SEED.as_bytes(),
@@ -219,15 +219,15 @@ pub fn stake(
         &program.id(),
     );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &dojo_mint_pubkey);
+    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &dojo_mint_pubkey);
+    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
     println!(
         "payer_pubkey={},
         pool_state_pda={},
         pool_vault={},
-        dojo_mint_pubkey={},
+        token_mint_pubkey={},
         user_state_pda={},
         user_vault={},
         user_ata={}
@@ -235,7 +235,7 @@ pub fn stake(
         payer_pubkey,
         pool_state_pda,
         pool_vault,
-        dojo_mint_pubkey,
+        token_mint_pubkey,
         user_state_pda,
         user_vault,
         user_ata
@@ -254,7 +254,7 @@ pub fn stake(
             pool_store: pool_store_pda.clone(),
             user_ata,
             pool_vault: pool_vault,
-            token_mint: dojo_mint_pubkey.clone(),
+            token_mint: token_mint_pubkey.clone(),
             associated_token_program: Pubkey::from_str(SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID)
                 .unwrap(),
             token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
@@ -273,7 +273,7 @@ pub fn claim(
     created_at: i64,
     round_period_secs: u32,
 ) -> Result<()> {
-    let dojo_mint_pubkey: Pubkey = token_mint
+    let token_mint_pubkey: Pubkey = token_mint
         .try_into()
         .map_err(|e| anyhow!("token_mint.try_into failed"))?;
     let payer_pubkey = program.payer();
@@ -281,17 +281,17 @@ pub fn claim(
     //get pool pda
     let (pool_state_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STATE_SEED.as_bytes(),
         ],
         &program.id(),
     );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
+    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
     let (pool_store_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STORE_SEED.as_bytes(),
@@ -308,15 +308,15 @@ pub fn claim(
         &program.id(),
     );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &dojo_mint_pubkey);
+    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &dojo_mint_pubkey);
+    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
     println!(
         "payer_pubkey={},
         pool_state_pda={},
         pool_vault={},
-        dojo_mint_pubkey={},
+        token_mint_pubkey={},
         user_state_pda={},
         user_vault={},
         user_ata={}
@@ -324,7 +324,7 @@ pub fn claim(
         payer_pubkey,
         pool_state_pda,
         pool_vault,
-        dojo_mint_pubkey,
+        token_mint_pubkey,
         user_state_pda,
         user_vault,
         user_ata
@@ -342,7 +342,7 @@ pub fn claim(
             pool_store: pool_store_pda.clone(),
             user_ata,
             pool_vault: pool_vault,
-            token_mint: dojo_mint_pubkey.clone(),
+            token_mint: token_mint_pubkey.clone(),
             token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
             system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
         })
@@ -362,7 +362,7 @@ pub fn unlock(
     created_at: i64,
     round_period_secs: u32,
 ) -> Result<()> {
-    let dojo_mint_pubkey: Pubkey = token_mint
+    let token_mint_pubkey: Pubkey = token_mint
         .try_into()
         .map_err(|e| anyhow!("token_mint.try_into failed"))?;
     let payer_pubkey = program.payer();
@@ -370,17 +370,17 @@ pub fn unlock(
     //get pool pda
     let (pool_state_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STATE_SEED.as_bytes(),
         ],
         &program.id(),
     );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
+    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
     let (pool_store_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STORE_SEED.as_bytes(),
@@ -397,15 +397,15 @@ pub fn unlock(
         &program.id(),
     );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &dojo_mint_pubkey);
+    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &dojo_mint_pubkey);
+    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
     println!(
         "payer_pubkey={},
         pool_state_pda={},
         pool_vault={},
-        dojo_mint_pubkey={},
+        token_mint_pubkey={},
         user_state_pda={},
         user_vault={},
         user_ata={}
@@ -413,7 +413,7 @@ pub fn unlock(
         payer_pubkey,
         pool_state_pda,
         pool_vault,
-        dojo_mint_pubkey,
+        token_mint_pubkey,
         user_state_pda,
         user_vault,
         user_ata
@@ -431,7 +431,7 @@ pub fn unlock(
             pool_store: pool_store_pda.clone(),
             user_ata,
             pool_vault: pool_vault,
-            token_mint: dojo_mint_pubkey.clone(),
+            token_mint: token_mint_pubkey.clone(),
             token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
             system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
         })
@@ -451,7 +451,7 @@ pub fn cancel_unlock(
     created_at: i64,
     round_period_secs: u32,
 ) -> Result<()> {
-    let dojo_mint_pubkey: Pubkey = token_mint
+    let token_mint_pubkey: Pubkey = token_mint
         .try_into()
         .map_err(|e| anyhow!("token_mint.try_into failed"))?;
     let payer_pubkey = program.payer();
@@ -459,17 +459,17 @@ pub fn cancel_unlock(
     //get pool pda
     let (pool_state_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STATE_SEED.as_bytes(),
         ],
         &program.id(),
     );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
+    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
     let (pool_store_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STORE_SEED.as_bytes(),
@@ -486,15 +486,15 @@ pub fn cancel_unlock(
         &program.id(),
     );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &dojo_mint_pubkey);
+    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &dojo_mint_pubkey);
+    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
     println!(
         "payer_pubkey={},
         pool_state_pda={},
         pool_vault={},
-        dojo_mint_pubkey={},
+        token_mint_pubkey={},
         user_state_pda={},
         user_vault={},
         user_ata={}
@@ -502,7 +502,7 @@ pub fn cancel_unlock(
         payer_pubkey,
         pool_state_pda,
         pool_vault,
-        dojo_mint_pubkey,
+        token_mint_pubkey,
         user_state_pda,
         user_vault,
         user_ata
@@ -520,7 +520,7 @@ pub fn cancel_unlock(
             pool_store: pool_store_pda.clone(),
             user_ata,
             pool_vault: pool_vault,
-            token_mint: dojo_mint_pubkey.clone(),
+            token_mint: token_mint_pubkey.clone(),
             token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
             system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
         })
@@ -540,7 +540,7 @@ pub fn unstake(
     created_at: i64,
     round_period_secs: u32,
 ) -> Result<()> {
-    let dojo_mint_pubkey: Pubkey = token_mint
+    let token_mint_pubkey: Pubkey = token_mint
         .try_into()
         .map_err(|e| anyhow!("token_mint.try_into failed"))?;
     let payer_pubkey = program.payer();
@@ -548,17 +548,17 @@ pub fn unstake(
     //get pool pda
     let (pool_state_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STATE_SEED.as_bytes(),
         ],
         &program.id(),
     );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &dojo_mint_pubkey);
+    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
     let (pool_store_pda, _bump) = Pubkey::find_program_address(
         &[
-            dojo_mint_pubkey.key().as_ref(),
+            token_mint_pubkey.key().as_ref(),
             created_at.to_be_bytes().as_ref(),
             round_period_secs.to_be_bytes().as_ref(),
             POOL_STORE_SEED.as_bytes(),
@@ -575,15 +575,15 @@ pub fn unstake(
         &program.id(),
     );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &dojo_mint_pubkey);
+    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &dojo_mint_pubkey);
+    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
     println!(
         "payer_pubkey={},
         pool_state_pda={},
         pool_vault={},
-        dojo_mint_pubkey={},
+        token_mint_pubkey={},
         user_state_pda={},
         user_vault={},
         user_ata={}
@@ -591,7 +591,7 @@ pub fn unstake(
         payer_pubkey,
         pool_state_pda,
         pool_vault,
-        dojo_mint_pubkey,
+        token_mint_pubkey,
         user_state_pda,
         user_vault,
         user_ata
@@ -609,7 +609,7 @@ pub fn unstake(
             pool_state: pool_state_pda.clone(),
             user_ata,
             pool_vault: pool_vault,
-            token_mint: dojo_mint_pubkey.clone(),
+            token_mint: token_mint_pubkey.clone(),
             token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
             system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
         })
