@@ -48,6 +48,9 @@ pub enum StakeError {
     //用户质押为空
     #[msg("BeyondStakeLimit")]
     BeyondStakeLimit,
+    //池子没开启
+    #[msg("PoolNotStarted")]
+    PoolNotStarted,
     #[msg("Unknown")]
     Unknown,
 }

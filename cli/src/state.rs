@@ -111,6 +111,7 @@ impl State for Program<Rc<Keypair>> {
             ],
             &self.id(),
         );
+        println!("pool_pda {}", pda);
         let collection_state = self.account::<PoolState>(pda)?;
         println!("pool_state {:#?}", collection_state);
         Ok(collection_state)

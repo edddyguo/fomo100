@@ -23,6 +23,10 @@ pub fn handler(ctx: Context<Stake>, amount: u64) -> Result<()> {
     // msg!("pool_state: {:?}", pool_state);
     // msg!("user_state: {:?}", user_state);
 
+    if clock.unix_timestamp < pool_state.created_at {
+        Err( StakeError::PoolNotStarted)?;
+    }
+
     if amount < pool_state.min_stake_amount || amount % pool_state.token_scale != 0{
         Err(StakeError::StakeAmountInvalid)?;
     }
