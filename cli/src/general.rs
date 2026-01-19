@@ -12,7 +12,7 @@ use spl_associated_token_account::create_associated_token_account;
 use spl_token::instruction::transfer;
 use std::rc::Rc;
 //for fomo100
-pub fn create_pda_account(
+pub async fn create_pda_account(
     program: &anchor_client::Program<Rc<Keypair>>,
     token_mint: &str,
     round_period_secs: u32,
@@ -36,7 +36,8 @@ pub fn create_pda_account(
     let space = 1728000;
     let lamports = program
         .rpc()
-        .get_minimum_balance_for_rent_exemption(space)?;
+        .get_minimum_balance_for_rent_exemption(space)
+        .await?;
 
     println!(
         "Creating pool_state account with {} bytes, rent {} lamports",

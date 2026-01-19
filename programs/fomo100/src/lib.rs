@@ -9,7 +9,7 @@ use instructions::*;
 use mpl_token_metadata::types::Collection;
 use std::str::FromStr;
 
-declare_id!("9ganGmZJLSzLJya3TALa9SHLpKL8YLszygGwVwqdvx2u");
+declare_id!("6Q59ncBrh2uTb8ZXXFJ31giaLVQEqVE8Phg6B1SGaTfq");
 
 #[program]
 pub mod fomo100 {

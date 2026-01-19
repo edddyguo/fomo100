@@ -1,5 +1,11 @@
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
 [programs.devnet]
-fomo100 = "4Th4Zf653GLACZ6yEEeharhv9JytsUYtPyXYAcA9freJ"
+fomo100 = "6Q59ncBrh2uTb8ZXXFJ31giaLVQEqVE8Phg6B1SGaTfq"
 
 [registry]
 url = "https://anchor.projectserum.com"

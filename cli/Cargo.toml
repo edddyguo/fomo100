@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 
-anchor-client = { version = "0.32.1", features = ["debug"] }
+anchor-client = { version = "=0.31.1", features = ["debug"] }
 anyhow = "1.0.32"
 borsh = "0.10.4"
 chrono = "0.4"
@@ -28,3 +28,6 @@ spl-associated-token-account = { version = "6.0.0", features = [
 ] }
 spl-token = "^8.0.0"
 tokio = { version = "1.28.2", features = ["full"] }
+orao-solana-vrf = { version = "=0.6.0", default-features = false, features = [
+    "sdk",
+] }

@@ -3,6 +3,7 @@ use anchor_client::anchor_lang::Key;
 use anchor_client::solana_sdk::signature::Keypair;
 use anyhow::{anyhow, Result};
 use fomo100::state::*;
+use orao_solana_vrf::{wait_fulfilled, RequestBuilder};
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use spl_associated_token_account::get_associated_token_address;
 use std::rc::Rc;
@@ -17,31 +18,31 @@ pub fn expand_pool_state<T: TryInto<Pubkey>>(
     program: &anchor_client::Program<Rc<Keypair>>,
     pool_state_pda: T,
 ) -> Result<()> {
-    let payer_pubkey = program.payer();
-    println!("payer_pubkey {}", payer_pubkey);
-    let space = 10240;
-    let lamports = program
-        .rpc()
-        .get_minimum_balance_for_rent_exemption(space)?;
-    let payer_balance = get_lamport_balance(&payer_pubkey)?;
-    println!(
-        "payer {} balance {}, need consume {} lamport",
-        payer_pubkey, payer_balance, lamports
-    );
+    // let payer_pubkey = program.payer();
+    // println!("payer_pubkey {}", payer_pubkey);
+    // let space = 10240;
+    // let lamports = program
+    //     .rpc()
+    //     .get_minimum_balance_for_rent_exemption(space)?;
+    // let payer_balance = get_lamport_balance(&payer_pubkey)?;
+    // println!(
+    //     "payer {} balance {}, need consume {} lamport",
+    //     payer_pubkey, payer_balance, lamports
+    // );
 
-    let pool_state_pda: Pubkey = pool_state_pda
-        .try_into()
-        .map_err(|e| anyhow!("pool_state_pda.try_into failed"))?;
-    let init_res = program
-        .request()
-        .accounts(fomo100::accounts::ExpandPoolState {
-            admin: payer_pubkey,
-            pool_state: pool_state_pda,
-        })
-        .args(fomo100::instruction::ExpandPoolState {})
-        .send()
-        .unwrap();
-    println!("expand_pool_state_sig {}", init_res.to_string());
+    // let pool_state_pda: Pubkey = pool_state_pda
+    //     .try_into()
+    //     .map_err(|e| anyhow!("pool_state_pda.try_into failed"))?;
+    // let init_res = program
+    //     .request()
+    //     .accounts(fomo100::accounts::ExpandPoolState {
+    //         admin: payer_pubkey,
+    //         pool_state: pool_state_pda,
+    //     })
+    //     .args(fomo100::instruction::ExpandPoolState {})
+    //     .send()
+    //     .unwrap();
+    // println!("expand_pool_state_sig {}", init_res.to_string());
     Ok(())
 }
 
@@ -55,68 +56,69 @@ pub fn create_pool<T: TryInto<Pubkey>>(
     round_reward: u64,
     unlock_period_secs: u64,
 ) -> Result<Pubkey> {
-    let token_mint_pubkey: Pubkey = token_mint
-        .try_into()
-        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
-    let payer_pubkey = program.payer();
+    // let token_mint_pubkey: Pubkey = token_mint
+    //     .try_into()
+    //     .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    // let payer_pubkey = program.payer();
 
-    let (pool_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
+    // let (pool_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
 
-    let (pool_store_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STORE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
+    // let (pool_store_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STORE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
 
-    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
+    // let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
 
-    println!(
-        "\npayer_pubkey={}\n,
-        pool_state_pda={},
-        pool_vault={},
-        pool_store_pda={},
-        token_mint_pubkey={},",
-        payer_pubkey, pool_state_pda, pool_vault, pool_store_pda, token_mint_pubkey,
-    );
-    let init_res = program
-        .request()
-        .accounts(fomo100::accounts::CreatePool {
-            admin: payer_pubkey,
-            pool_state: pool_state_pda.clone(),
-            pool_store: pool_store_pda.clone(),
-            pool_vault: pool_vault,
-            token_mint: token_mint_pubkey.clone(),
-            associated_token_program: Pubkey::from_str(SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID)
-                .unwrap(),
-            token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
-            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
-        })
-        .args(fomo100::instruction::CreatePool {
-            token_decimal,
-            min_stake_amount,
-            created_at,
-            round_period_secs,
-            round_reward,
-            unlock_period_secs,
-        })
-        .send()
-        .unwrap();
-    println!("init settings {}", init_res.to_string());
-    let collection_state = program.pool_state(&token_mint_pubkey, created_at, round_period_secs)?;
-    println!("collection_state: {:?}", collection_state);
-    Ok(pool_state_pda)
+    // println!(
+    //     "\npayer_pubkey={}\n,
+    //     pool_state_pda={},
+    //     pool_vault={},
+    //     pool_store_pda={},
+    //     token_mint_pubkey={},",
+    //     payer_pubkey, pool_state_pda, pool_vault, pool_store_pda, token_mint_pubkey,
+    // );
+    // let init_res = program
+    //     .request()
+    //     .accounts(fomo100::accounts::CreatePool {
+    //         admin: payer_pubkey,
+    //         pool_state: pool_state_pda.clone(),
+    //         pool_store: pool_store_pda.clone(),
+    //         pool_vault: pool_vault,
+    //         token_mint: token_mint_pubkey.clone(),
+    //         associated_token_program: Pubkey::from_str(SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID)
+    //             .unwrap(),
+    //         token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
+    //         system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+    //     })
+    //     .args(fomo100::instruction::CreatePool {
+    //         token_decimal,
+    //         min_stake_amount,
+    //         created_at,
+    //         round_period_secs,
+    //         round_reward,
+    //         unlock_period_secs,
+    //     })
+    //     .send()
+    //     .unwrap();
+    // println!("init settings {}", init_res.to_string());
+    // let collection_state = program.pool_state(&token_mint_pubkey, created_at, round_period_secs)?;
+    // println!("collection_state: {:?}", collection_state);
+    //Ok(pool_state_pda)
+    todo!()
 }
 
 pub fn set_admin(
@@ -135,45 +137,45 @@ pub fn set_round_reward<T: TryInto<Pubkey>>(
     round_period_secs: u32,
     round_reward: u64,
 ) -> Result<()> {
-    let token_mint_pubkey: Pubkey = token_mint
-        .try_into()
-        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
-    let payer_pubkey = program.payer();
+    // let token_mint_pubkey: Pubkey = token_mint
+    //     .try_into()
+    //     .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    // let payer_pubkey = program.payer();
 
-    let (pool_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
+    // let (pool_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
 
-    let (pool_store_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STORE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
+    // let (pool_store_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STORE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
 
-    let res = program
-        .request()
-        .accounts(fomo100::accounts::SetRoundReward {
-            admin: payer_pubkey,
-            pool_state: pool_state_pda.clone(),
-            pool_store: pool_store_pda.clone(),
-            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
-        })
-        .args(fomo100::instruction::SetRoundReward { round_reward })
-        .send()
-        .unwrap();
-    println!("call res:  {}", res.to_string());
-    let pool_state = program.pool_state(&token_mint_pubkey, created_at, round_period_secs)?;
-    println!("pool_state: {:?}", pool_state);
+    // let res = program
+    //     .request()
+    //     .accounts(fomo100::accounts::SetRoundReward {
+    //         admin: payer_pubkey,
+    //         pool_state: pool_state_pda.clone(),
+    //         pool_store: pool_store_pda.clone(),
+    //         system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+    //     })
+    //     .args(fomo100::instruction::SetRoundReward { round_reward })
+    //     .send()
+    //     .unwrap();
+    // println!("call res:  {}", res.to_string());
+    // let pool_state = program.pool_state(&token_mint_pubkey, created_at, round_period_secs)?;
+    // println!("pool_state: {:?}", pool_state);
     Ok(())
 }
 
@@ -184,86 +186,86 @@ pub fn stake(
     round_period_secs: u32,
     amount: u64,
 ) -> Result<()> {
-    let token_mint_pubkey: Pubkey = token_mint
-        .try_into()
-        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
-    let payer_pubkey = program.payer();
+    // let token_mint_pubkey: Pubkey = token_mint
+    //     .try_into()
+    //     .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    // let payer_pubkey = program.payer();
 
-    //get pool pda
-    let (pool_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
-    let (pool_store_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STORE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    // 2) get user pda
-    let (user_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            payer_pubkey.key().as_ref(),
-            pool_state_pda.key().as_ref(),
-            USER_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
+    // //get pool pda
+    // let (pool_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
+    // let (pool_store_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STORE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // // 2) get user pda
+    // let (user_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         payer_pubkey.key().as_ref(),
+    //         pool_state_pda.key().as_ref(),
+    //         USER_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
+    // let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
+    // let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
-    println!(
-        "payer_pubkey={},
-        pool_state_pda={},
-        pool_vault={},
-        token_mint_pubkey={},
-        user_state_pda={},
-        user_vault={},
-        user_ata={}
-        ",
-        payer_pubkey,
-        pool_state_pda,
-        pool_vault,
-        token_mint_pubkey,
-        user_state_pda,
-        user_vault,
-        user_ata
-    );
-    let init_res = program
-        .request()
-        //max:
-        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(400_000))
-        //max: 128KB
-        .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
-        .accounts(fomo100::accounts::Stake {
-            user: payer_pubkey,
-            user_state: user_state_pda,
-            user_vault,
-            pool_state: pool_state_pda.clone(),
-            pool_store: pool_store_pda.clone(),
-            user_ata,
-            pool_vault: pool_vault,
-            token_mint: token_mint_pubkey.clone(),
-            associated_token_program: Pubkey::from_str(SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID)
-                .unwrap(),
-            token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
-            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
-        })
-        .args(fomo100::instruction::Stake { amount })
-        .send()
-        .unwrap();
-    println!("init settings {}", init_res.to_string());
+    // println!(
+    //     "payer_pubkey={},
+    //     pool_state_pda={},
+    //     pool_vault={},
+    //     token_mint_pubkey={},
+    //     user_state_pda={},
+    //     user_vault={},
+    //     user_ata={}
+    //     ",
+    //     payer_pubkey,
+    //     pool_state_pda,
+    //     pool_vault,
+    //     token_mint_pubkey,
+    //     user_state_pda,
+    //     user_vault,
+    //     user_ata
+    // );
+    // let init_res = program
+    //     .request()
+    //     //max:
+    //     .instruction(ComputeBudgetInstruction::set_compute_unit_limit(400_000))
+    //     //max: 128KB
+    //     .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
+    //     .accounts(fomo100::accounts::Stake {
+    //         user: payer_pubkey,
+    //         user_state: user_state_pda,
+    //         user_vault,
+    //         pool_state: pool_state_pda.clone(),
+    //         pool_store: pool_store_pda.clone(),
+    //         user_ata,
+    //         pool_vault: pool_vault,
+    //         token_mint: token_mint_pubkey.clone(),
+    //         associated_token_program: Pubkey::from_str(SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID)
+    //             .unwrap(),
+    //         token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
+    //         system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+    //     })
+    //     .args(fomo100::instruction::Stake { amount })
+    //     .send()
+    //     .unwrap();
+    // println!("init settings {}", init_res.to_string());
     Ok(())
 }
 
@@ -273,86 +275,86 @@ pub fn claim(
     created_at: i64,
     round_period_secs: u32,
 ) -> Result<()> {
-    let token_mint_pubkey: Pubkey = token_mint
-        .try_into()
-        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
-    let payer_pubkey = program.payer();
+    // let token_mint_pubkey: Pubkey = token_mint
+    //     .try_into()
+    //     .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    // let payer_pubkey = program.payer();
 
-    //get pool pda
-    let (pool_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
-    let (pool_store_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STORE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    // 2) get user pda
-    let (user_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            payer_pubkey.key().as_ref(),
-            pool_state_pda.key().as_ref(),
-            USER_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
+    // //get pool pda
+    // let (pool_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
+    // let (pool_store_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STORE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // // 2) get user pda
+    // let (user_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         payer_pubkey.key().as_ref(),
+    //         pool_state_pda.key().as_ref(),
+    //         USER_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
+    // let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
+    // let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
-    println!(
-        "payer_pubkey={},
-        pool_state_pda={},
-        pool_vault={},
-        token_mint_pubkey={},
-        user_state_pda={},
-        user_vault={},
-        user_ata={}
-        ",
-        payer_pubkey,
-        pool_state_pda,
-        pool_vault,
-        token_mint_pubkey,
-        user_state_pda,
-        user_vault,
-        user_ata
-    );
-    let init_res = program
-        .request()
-        //max:
-        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
-        //max: 128KB
-        .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
-        .accounts(fomo100::accounts::Claim {
-            user: payer_pubkey,
-            user_state: user_state_pda,
-            pool_state: pool_state_pda.clone(),
-            pool_store: pool_store_pda.clone(),
-            user_ata,
-            pool_vault: pool_vault,
-            token_mint: token_mint_pubkey.clone(),
-            token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
-            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
-        })
-        .args(fomo100::instruction::Claim {
-            created_at,
-            round_period_secs,
-        })
-        .send()
-        .unwrap();
-    println!("init settings {}", init_res.to_string());
+    // println!(
+    //     "payer_pubkey={},
+    //     pool_state_pda={},
+    //     pool_vault={},
+    //     token_mint_pubkey={},
+    //     user_state_pda={},
+    //     user_vault={},
+    //     user_ata={}
+    //     ",
+    //     payer_pubkey,
+    //     pool_state_pda,
+    //     pool_vault,
+    //     token_mint_pubkey,
+    //     user_state_pda,
+    //     user_vault,
+    //     user_ata
+    // );
+    // let init_res = program
+    //     .request()
+    //     //max:
+    //     .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
+    //     //max: 128KB
+    //     .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
+    //     .accounts(fomo100::accounts::Claim {
+    //         user: payer_pubkey,
+    //         user_state: user_state_pda,
+    //         pool_state: pool_state_pda.clone(),
+    //         pool_store: pool_store_pda.clone(),
+    //         user_ata,
+    //         pool_vault: pool_vault,
+    //         token_mint: token_mint_pubkey.clone(),
+    //         token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
+    //         system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+    //     })
+    //     .args(fomo100::instruction::Claim {
+    //         created_at,
+    //         round_period_secs,
+    //     })
+    //     .send()
+    //     .unwrap();
+    // println!("init settings {}", init_res.to_string());
     Ok(())
 }
 
@@ -362,86 +364,86 @@ pub fn unlock(
     created_at: i64,
     round_period_secs: u32,
 ) -> Result<()> {
-    let token_mint_pubkey: Pubkey = token_mint
-        .try_into()
-        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
-    let payer_pubkey = program.payer();
+    // let token_mint_pubkey: Pubkey = token_mint
+    //     .try_into()
+    //     .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    // let payer_pubkey = program.payer();
 
-    //get pool pda
-    let (pool_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
-    let (pool_store_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STORE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    // 2) get user pda
-    let (user_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            payer_pubkey.key().as_ref(),
-            pool_state_pda.key().as_ref(),
-            USER_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
+    // //get pool pda
+    // let (pool_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
+    // let (pool_store_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STORE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // // 2) get user pda
+    // let (user_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         payer_pubkey.key().as_ref(),
+    //         pool_state_pda.key().as_ref(),
+    //         USER_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
+    // let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
+    // let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
-    println!(
-        "payer_pubkey={},
-        pool_state_pda={},
-        pool_vault={},
-        token_mint_pubkey={},
-        user_state_pda={},
-        user_vault={},
-        user_ata={}
-        ",
-        payer_pubkey,
-        pool_state_pda,
-        pool_vault,
-        token_mint_pubkey,
-        user_state_pda,
-        user_vault,
-        user_ata
-    );
-    let init_res = program
-        .request()
-        //max:
-        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
-        //max: 128KB
-        .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
-        .accounts(fomo100::accounts::Unlock {
-            user: payer_pubkey,
-            user_state: user_state_pda,
-            pool_state: pool_state_pda.clone(),
-            pool_store: pool_store_pda.clone(),
-            user_ata,
-            pool_vault: pool_vault,
-            token_mint: token_mint_pubkey.clone(),
-            token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
-            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
-        })
-        .args(fomo100::instruction::Unlock {
-            created_at,
-            round_period_secs,
-        })
-        .send()
-        .unwrap();
-    println!("init settings {}", init_res.to_string());
+    // println!(
+    //     "payer_pubkey={},
+    //     pool_state_pda={},
+    //     pool_vault={},
+    //     token_mint_pubkey={},
+    //     user_state_pda={},
+    //     user_vault={},
+    //     user_ata={}
+    //     ",
+    //     payer_pubkey,
+    //     pool_state_pda,
+    //     pool_vault,
+    //     token_mint_pubkey,
+    //     user_state_pda,
+    //     user_vault,
+    //     user_ata
+    // );
+    // let init_res = program
+    //     .request()
+    //     //max:
+    //     .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
+    //     //max: 128KB
+    //     .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
+    //     .accounts(fomo100::accounts::Unlock {
+    //         user: payer_pubkey,
+    //         user_state: user_state_pda,
+    //         pool_state: pool_state_pda.clone(),
+    //         pool_store: pool_store_pda.clone(),
+    //         user_ata,
+    //         pool_vault: pool_vault,
+    //         token_mint: token_mint_pubkey.clone(),
+    //         token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
+    //         system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+    //     })
+    //     .args(fomo100::instruction::Unlock {
+    //         created_at,
+    //         round_period_secs,
+    //     })
+    //     .send()
+    //     .unwrap();
+    // println!("init settings {}", init_res.to_string());
     Ok(())
 }
 
@@ -451,86 +453,86 @@ pub fn cancel_unlock(
     created_at: i64,
     round_period_secs: u32,
 ) -> Result<()> {
-    let token_mint_pubkey: Pubkey = token_mint
-        .try_into()
-        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
-    let payer_pubkey = program.payer();
+    // let token_mint_pubkey: Pubkey = token_mint
+    //     .try_into()
+    //     .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    // let payer_pubkey = program.payer();
 
-    //get pool pda
-    let (pool_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
-    let (pool_store_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STORE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    // 2) get user pda
-    let (user_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            payer_pubkey.key().as_ref(),
-            pool_state_pda.key().as_ref(),
-            USER_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
+    // //get pool pda
+    // let (pool_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
+    // let (pool_store_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STORE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // // 2) get user pda
+    // let (user_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         payer_pubkey.key().as_ref(),
+    //         pool_state_pda.key().as_ref(),
+    //         USER_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
+    // let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
+    // let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
-    println!(
-        "payer_pubkey={},
-        pool_state_pda={},
-        pool_vault={},
-        token_mint_pubkey={},
-        user_state_pda={},
-        user_vault={},
-        user_ata={}
-        ",
-        payer_pubkey,
-        pool_state_pda,
-        pool_vault,
-        token_mint_pubkey,
-        user_state_pda,
-        user_vault,
-        user_ata
-    );
-    let init_res = program
-        .request()
-        //max:
-        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
-        //max: 128KB
-        .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
-        .accounts(fomo100::accounts::CancelUnlock {
-            user: payer_pubkey,
-            user_state: user_state_pda,
-            pool_state: pool_state_pda.clone(),
-            pool_store: pool_store_pda.clone(),
-            user_ata,
-            pool_vault: pool_vault,
-            token_mint: token_mint_pubkey.clone(),
-            token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
-            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
-        })
-        .args(fomo100::instruction::CancelUnlock {
-            created_at,
-            round_period_secs,
-        })
-        .send()
-        .unwrap();
-    println!("init settings {}", init_res.to_string());
+    // println!(
+    //     "payer_pubkey={},
+    //     pool_state_pda={},
+    //     pool_vault={},
+    //     token_mint_pubkey={},
+    //     user_state_pda={},
+    //     user_vault={},
+    //     user_ata={}
+    //     ",
+    //     payer_pubkey,
+    //     pool_state_pda,
+    //     pool_vault,
+    //     token_mint_pubkey,
+    //     user_state_pda,
+    //     user_vault,
+    //     user_ata
+    // );
+    // let init_res = program
+    //     .request()
+    //     //max:
+    //     .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
+    //     //max: 128KB
+    //     .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
+    //     .accounts(fomo100::accounts::CancelUnlock {
+    //         user: payer_pubkey,
+    //         user_state: user_state_pda,
+    //         pool_state: pool_state_pda.clone(),
+    //         pool_store: pool_store_pda.clone(),
+    //         user_ata,
+    //         pool_vault: pool_vault,
+    //         token_mint: token_mint_pubkey.clone(),
+    //         token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
+    //         system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+    //     })
+    //     .args(fomo100::instruction::CancelUnlock {
+    //         created_at,
+    //         round_period_secs,
+    //     })
+    //     .send()
+    //     .unwrap();
+    // println!("init settings {}", init_res.to_string());
     Ok(())
 }
 
@@ -540,86 +542,86 @@ pub fn unstake(
     created_at: i64,
     round_period_secs: u32,
 ) -> Result<()> {
-    let token_mint_pubkey: Pubkey = token_mint
-        .try_into()
-        .map_err(|e| anyhow!("token_mint.try_into failed"))?;
-    let payer_pubkey = program.payer();
+    // let token_mint_pubkey: Pubkey = token_mint
+    //     .try_into()
+    //     .map_err(|e| anyhow!("token_mint.try_into failed"))?;
+    // let payer_pubkey = program.payer();
 
-    //get pool pda
-    let (pool_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
-    let (pool_store_pda, _bump) = Pubkey::find_program_address(
-        &[
-            token_mint_pubkey.key().as_ref(),
-            created_at.to_be_bytes().as_ref(),
-            round_period_secs.to_be_bytes().as_ref(),
-            POOL_STORE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
-    // 2) get user pda
-    let (user_state_pda, _bump) = Pubkey::find_program_address(
-        &[
-            payer_pubkey.key().as_ref(),
-            pool_state_pda.key().as_ref(),
-            USER_STATE_SEED.as_bytes(),
-        ],
-        &program.id(),
-    );
+    // //get pool pda
+    // let (pool_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // let pool_vault = get_associated_token_address(&pool_state_pda, &token_mint_pubkey);
+    // let (pool_store_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         token_mint_pubkey.key().as_ref(),
+    //         created_at.to_be_bytes().as_ref(),
+    //         round_period_secs.to_be_bytes().as_ref(),
+    //         POOL_STORE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
+    // // 2) get user pda
+    // let (user_state_pda, _bump) = Pubkey::find_program_address(
+    //     &[
+    //         payer_pubkey.key().as_ref(),
+    //         pool_state_pda.key().as_ref(),
+    //         USER_STATE_SEED.as_bytes(),
+    //     ],
+    //     &program.id(),
+    // );
 
-    let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
+    // let user_vault = get_associated_token_address(&user_state_pda, &token_mint_pubkey);
 
-    let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
+    // let user_ata = get_associated_token_address(&payer_pubkey, &token_mint_pubkey);
 
-    println!(
-        "payer_pubkey={},
-        pool_state_pda={},
-        pool_vault={},
-        token_mint_pubkey={},
-        user_state_pda={},
-        user_vault={},
-        user_ata={}
-        ",
-        payer_pubkey,
-        pool_state_pda,
-        pool_vault,
-        token_mint_pubkey,
-        user_state_pda,
-        user_vault,
-        user_ata
-    );
-    let init_res = program
-        .request()
-        //max:
-        .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
-        //max: 128KB
-        .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
-        .accounts(fomo100::accounts::Unstake {
-            user: payer_pubkey,
-            user_state: user_state_pda,
-            user_vault: user_vault.clone(),
-            pool_state: pool_state_pda.clone(),
-            user_ata,
-            pool_vault: pool_vault,
-            token_mint: token_mint_pubkey.clone(),
-            token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
-            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
-        })
-        .args(fomo100::instruction::Unstake {
-            created_at,
-            round_period_secs,
-        })
-        .send()
-        .unwrap();
-    println!("init settings {}", init_res.to_string());
+    // println!(
+    //     "payer_pubkey={},
+    //     pool_state_pda={},
+    //     pool_vault={},
+    //     token_mint_pubkey={},
+    //     user_state_pda={},
+    //     user_vault={},
+    //     user_ata={}
+    //     ",
+    //     payer_pubkey,
+    //     pool_state_pda,
+    //     pool_vault,
+    //     token_mint_pubkey,
+    //     user_state_pda,
+    //     user_vault,
+    //     user_ata
+    // );
+    // let init_res = program
+    //     .request()
+    //     //max:
+    //     .instruction(ComputeBudgetInstruction::set_compute_unit_limit(800_000))
+    //     //max: 128KB
+    //     .instruction(ComputeBudgetInstruction::request_heap_frame(64 * 1024))
+    //     .accounts(fomo100::accounts::Unstake {
+    //         user: payer_pubkey,
+    //         user_state: user_state_pda,
+    //         user_vault: user_vault.clone(),
+    //         pool_state: pool_state_pda.clone(),
+    //         user_ata,
+    //         pool_vault: pool_vault,
+    //         token_mint: token_mint_pubkey.clone(),
+    //         token_program: Pubkey::from_str(SPL_PROGRAM_ID).unwrap(),
+    //         system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+    //     })
+    //     .args(fomo100::instruction::Unstake {
+    //         created_at,
+    //         round_period_secs,
+    //     })
+    //     .send()
+    //     .unwrap();
+    // println!("init settings {}", init_res.to_string());
     Ok(())
 }
 
