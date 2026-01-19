@@ -101,25 +101,39 @@ pub async fn test_random(program: &anchor_client::Program<Rc<Keypair>>) -> Resul
             vrf: vrf_program,
             system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
         })
-        .args(fomo100::instruction::TestRandom { force })
+        .args(fomo100::instruction::TestRandom {
+            force: force.clone(),
+        })
         .send()
         .await
         .unwrap();
-    println!("init settings {}", init_res.to_string());
+    println!("request_random {}", init_res.to_string());
     //let collection_state = program.pool_state(&token_mint_pubkey, created_at, round_period_secs)?;
     //println!("collection_state: {:?}", collection_state);
     let vrf_program2 = Arc::new(vrf_program2);
-    loop {
-        let fulfilled = wait_fulfilled(force, vrf_program2.clone()).await;
-        let Ok(randomness) = fulfilled.await else {
-            println!("Fulfill listener has unexpectedly died");
-            std::thread::sleep(Duration::from_secs(1));
-            continue;
-        };
-        println!("get randomness {:?}", randomness);
-        break;
-    }
+    let fulfilled = wait_fulfilled(force, vrf_program2.clone()).await;
+    let Ok(randomness) = fulfilled.await else {
+        panic!("Fulfill listener has unexpectedly died");
+    };
+    println!("get randomness {:?}", randomness);
 
+    //get value
+    let init_res = program
+        .request()
+        .accounts(fomo100::accounts::TestGetRandom {
+            player: payer_pubkey,
+            player_state: player_state_pda,
+            random: random_store_pda,
+            treasury: treasury,
+            config: config_pda,
+            vrf: vrf_program,
+            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+        })
+        .args(fomo100::instruction::TestGetRandom { force })
+        .send()
+        .await
+        .unwrap();
+    println!("request_get_random_txid {}", init_res.to_string());
     Ok(force)
 }
 

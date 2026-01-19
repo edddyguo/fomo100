@@ -234,6 +234,23 @@ use std::mem::size_of;
 use anchor_lang::prelude::*;
 use orao_solana_vrf::state::RandomnessAccountData;
 
+pub fn get_account_data(account_info: &AccountInfo) -> RandomnessAccountData {
+    if account_info.data_is_empty() {
+        // return Err(ProgramError::UninitializedAccount);
+        panic!("UninitializedAccount")
+    }
+
+    let account =
+        RandomnessAccountData::try_deserialize(&mut &account_info.data.borrow()[..]).unwrap();
+
+    if false {
+        //Err(ProgramError::UninitializedAccount)
+        panic!("UninitializedAccount")
+    } else {
+        account
+    }
+}
+
 #[account]
 //做一个10个长度的数组，定期清理
 pub struct PlayerState {
@@ -258,8 +275,12 @@ impl PlayerState {
     ///
     /// Returns `Ok` on success.
     pub fn assert_can_play(&self, prev_round_acc: &AccountInfo) -> Result<()> {
-        //todo
         Ok(())
+    }
+
+    pub fn get_random_value(&self, account: &AccountInfo) -> Option<[u8; 64]> {
+        let rand_acc = get_account_data(account);
+        rand_acc.fulfilled_randomness().map(|x| x.clone())
     }
 }
 
