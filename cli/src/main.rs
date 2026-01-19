@@ -13,6 +13,7 @@ use anchor_client::{Client, Cluster};
 use anyhow::Result;
 use clap::Parser;
 use clap::Subcommand;
+use fomo100::instructions::TestRandom;
 use fomo100::utils::get_current_round_index;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signer::Signer;
@@ -160,6 +161,12 @@ pub struct CancelUnlock {
     pub round_period_secs: u32,
 }
 
+#[derive(Parser, Debug)]
+pub struct TestRandomArgs {
+    #[clap(long)]
+    pub program_id: String,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     ExpandPoolState(ExpandPoolState),
@@ -172,6 +179,7 @@ pub enum Commands {
     Unlock(UnlockArgs),
     Unstake(UnstakeArgs),
     CancelUnlock(CancelUnlock),
+    TestRandom(TestRandomArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -222,7 +230,8 @@ const SYSTEM_RENT_ID: &'static str = "SysvarRent11111111111111111111111111111111
 const MPL_TOKEN_METADATA_ACCOUNT: &'static str = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
 const MEM_COLLECTION_MINT: &'static str = "8zKSXBACKpaKvgDCYdDwpJGTVDSBCtAgucJpmR7gAyx5";
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     /***
     let url = Cluster::Custom(
         "https://api.mainnet-beta.solana.com".to_string(),
@@ -358,6 +367,11 @@ fn main() -> Result<()> {
                 args.created_at,
                 args.round_period_secs,
             )?;
+        }
+        Commands::TestRandom(args) => {
+            let program = client.program(Pubkey::from_str(&args.program_id)?)?;
+            let res = instructions::test_random(&program).await?;
+            println!("{:?}", res);
         }
     }
     Ok(())

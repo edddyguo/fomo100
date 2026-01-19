@@ -103,6 +103,9 @@ solana address -k 1.json
 ## cli tool
 
 ```
+
+../target/debug/anchor_cli --prikey 3FiXBX3gPXAMmdYNi6qufpYoCebSmPV3Ua9RMJnvkokJQZher5jDeQJt5y4ksdudFQQd2fDHQ8NNzJXSpsmXMdNd --rpc-url https://api.devnet.solana.com test-random --program-id 6Q59ncBrh2uTb8ZXXFJ31giaLVQEqVE8Phg6B1SGaTfq
+
 1762827331
 
 ## 创建池子，记得创建完要给池子打钱

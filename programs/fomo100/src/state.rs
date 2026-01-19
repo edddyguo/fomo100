@@ -235,6 +235,7 @@ use anchor_lang::prelude::*;
 use orao_solana_vrf::state::RandomnessAccountData;
 
 #[account]
+//做一个10个长度的数组，定期清理
 pub struct PlayerState {
     pub player: Pubkey,
     pub force: [u8; 32],

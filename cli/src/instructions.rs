@@ -1,18 +1,185 @@
 use anchor_client::anchor_lang::prelude::Pubkey;
 use anchor_client::anchor_lang::Key;
 use anchor_client::solana_sdk::signature::Keypair;
+use anchor_client::{Client, Cluster, Program};
 use anyhow::{anyhow, Result};
+use fomo100::instructions::PLAYER_STATE_ACCOUNT_SEED;
 use fomo100::state::*;
-use orao_solana_vrf::{wait_fulfilled, RequestBuilder};
+use orao_solana_vrf::{
+    wait_fulfilled, RequestBuilder, CONFIG_ACCOUNT_SEED, RANDOMNESS_ACCOUNT_SEED,
+};
+use solana_client::rpc_config::RpcSendTransactionConfig;
+use solana_sdk::bs58;
+use solana_sdk::commitment_config::{CommitmentConfig, CommitmentLevel};
 use solana_sdk::compute_budget::ComputeBudgetInstruction;
 use spl_associated_token_account::get_associated_token_address;
 use std::rc::Rc;
+
 use std::str::FromStr;
+use std::sync::Arc;
+use std::time::Duration;
 use std::u64;
 
 use crate::state::State;
 use crate::utils::get_lamport_balance;
 use crate::{SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID, SPL_PROGRAM_ID, SYSTEM_PROGRAM_ID};
+
+// #[account(mut)]
+// pub player: Signer<'info>,
+// #[account(
+//     init_if_needed,
+//     payer = player,
+//     space = 8 + PlayerState::SIZE,
+//     seeds = [
+//         PLAYER_STATE_ACCOUNT_SEED,
+//         player.key().as_ref()
+//     ],
+//     bump
+// )]
+// pub player_state: Account<'info, PlayerState>,
+// /// CHECK:
+// #[account(
+//     mut,
+//     seeds = [RANDOMNESS_ACCOUNT_SEED, &force],
+//     bump,
+//     seeds::program = orao_solana_vrf::ID
+// )]
+// pub random: AccountInfo<'info>,
+// /// CHECK:
+// #[account(mut)]
+// pub treasury: AccountInfo<'info>,
+// #[account(
+//     mut,
+//     seeds = [CONFIG_ACCOUNT_SEED],
+//     bump,
+//     seeds::program = orao_solana_vrf::ID
+// )]
+// pub config: Account<'info, NetworkState>,
+// pub vrf: Program<'info, OraoVrf>,
+// pub system_program: Program<'info, System>,
+
+pub async fn test_random(program: &anchor_client::Program<Rc<Keypair>>) -> Result<[u8; 32]> {
+    let force: [u8; 32] = rand::random();
+
+    let payer_pubkey = program.payer();
+
+    let (player_state_pda, _bump) = Pubkey::find_program_address(
+        &[PLAYER_STATE_ACCOUNT_SEED, payer_pubkey.key().as_ref()],
+        &program.id(),
+    );
+
+    let (random_store_pda, _bump) = Pubkey::find_program_address(
+        &[RANDOMNESS_ACCOUNT_SEED, force.as_ref()],
+        &orao_solana_vrf::id(),
+    );
+    //todo:
+    let vrf_payer = Arc::new(Keypair::new()); // 实际使用时加载你的密钥文件
+    let vrf_client = Client::new(Cluster::Devnet, vrf_payer);
+    let vrf_program2 = vrf_client.program(orao_solana_vrf::id()).unwrap();
+    let vrf_network_state = orao_solana_vrf::get_network_state(&vrf_program2)
+        .await
+        .unwrap();
+    let treasury = vrf_network_state.config.treasury;
+
+    let (config_pda, _bump) =
+        Pubkey::find_program_address(&[CONFIG_ACCOUNT_SEED], &orao_solana_vrf::id());
+    let vrf_program = orao_solana_vrf::id();
+    println!(
+        "\npayer_pubkey={}\n,
+        pool_state_pda={},
+        random_store_pda={}",
+        payer_pubkey, player_state_pda, random_store_pda,
+    );
+    let init_res = program
+        .request()
+        .accounts(fomo100::accounts::TestRandom {
+            player: payer_pubkey,
+            player_state: player_state_pda,
+            random: random_store_pda,
+            treasury: treasury,
+            config: config_pda,
+            vrf: vrf_program,
+            system_program: Pubkey::from_str(&SYSTEM_PROGRAM_ID).unwrap(),
+        })
+        .args(fomo100::instruction::TestRandom { force })
+        .send()
+        .await
+        .unwrap();
+    println!("init settings {}", init_res.to_string());
+    //let collection_state = program.pool_state(&token_mint_pubkey, created_at, round_period_secs)?;
+    //println!("collection_state: {:?}", collection_state);
+    let vrf_program2 = Arc::new(vrf_program2);
+    loop {
+        let fulfilled = wait_fulfilled(force, vrf_program2.clone()).await;
+        let Ok(randomness) = fulfilled.await else {
+            println!("Fulfill listener has unexpectedly died");
+            std::thread::sleep(Duration::from_secs(1));
+            continue;
+        };
+        println!("get randomness {:?}", randomness);
+        break;
+    }
+
+    Ok(force)
+}
+
+pub async fn test_orao_offchain(rpc: &str, prikey: &str) -> Result<()> {
+    let (payer, program) = get_program(rpc, prikey);
+
+    let seed = rand::random();
+
+    // now let's spawn a listener that gets resolved as soon as our request is fulfilled
+    let fulfilled = wait_fulfilled(seed, program.clone()).await;
+
+    println!(
+        "Requesting randomness for seed {}..",
+        bs58::encode(&seed).into_string()
+    );
+
+    let tx = RequestBuilder::new(seed)
+        .build(&program)
+        .await
+        .expect("Randomness request")
+        .send_with_spinner_and_config(RpcSendTransactionConfig {
+            preflight_commitment: Some(CommitmentLevel::Confirmed),
+            ..Default::default()
+        })
+        .await
+        .expect("Transaction hash");
+
+    println!("Request performed in {}", tx);
+
+    // now let's wait for the randomness
+    let Ok(randomness) = fulfilled.await else {
+        panic!("Fulfill listener has unexpectedly died");
+    };
+
+    println!(
+        "Fulfilled randomness: {}",
+        bs58::encode(&randomness).into_string()
+    );
+
+    println!("---");
+
+    Ok(())
+}
+
+use solana_sdk::signature::Signer;
+fn get_program(rpc_url: &str, prikey: &str) -> (Pubkey, Arc<Program<Arc<Keypair>>>) {
+    let payer = Keypair::from_base58_string(&prikey);
+    let payer_pubkey = payer.try_pubkey().unwrap();
+    let cluster_rpc_url = Cluster::from_str(rpc_url).expect("bad cluster url");
+    let client = Client::new_with_options(
+        cluster_rpc_url,
+        Arc::new(payer),
+        CommitmentConfig::confirmed(),
+    );
+    let program = client
+        .program(orao_solana_vrf::id())
+        .expect("unable to get a program");
+
+    (payer_pubkey, Arc::new(program))
+}
 
 pub fn expand_pool_state<T: TryInto<Pubkey>>(
     program: &anchor_client::Program<Rc<Keypair>>,

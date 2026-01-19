@@ -15,6 +15,10 @@ declare_id!("6Q59ncBrh2uTb8ZXXFJ31giaLVQEqVE8Phg6B1SGaTfq");
 pub mod fomo100 {
     use super::*;
 
+    pub fn test_random(ctx: Context<TestRandom>, force: [u8; 32]) -> Result<()> {
+        instructions::test_random::handler(ctx, force)
+    }
+
     pub fn claim(ctx: Context<Claim>, created_at: i64, round_period_secs: u32) -> Result<()> {
         instructions::claim::handler(ctx, created_at, round_period_secs)
     }

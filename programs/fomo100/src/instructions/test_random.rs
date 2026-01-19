@@ -28,7 +28,7 @@ pub fn handler(ctx: Context<TestRandom>, force: [u8; 32]) -> Result<()> {
     }
 
     // Assert that the player is able to play.
-    player_state.assert_can_play(ctx.accounts.prev_round.as_ref())?;
+    // player_state.assert_can_play(ctx.accounts.prev_round.as_ref())?;
 
     // Request randomness.
     let cpi_program = ctx.accounts.vrf.to_account_info();
@@ -64,13 +64,6 @@ pub struct TestRandom<'info> {
         bump
     )]
     pub player_state: Account<'info, PlayerState>,
-    /// CHECK:
-    #[account(
-        seeds = [RANDOMNESS_ACCOUNT_SEED, player_state.force.as_ref()],
-        bump,
-        seeds::program = orao_solana_vrf::ID
-    )]
-    pub prev_round: AccountInfo<'info>,
     /// CHECK:
     #[account(
         mut,
